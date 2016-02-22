@@ -91,6 +91,7 @@ def save2file(filename):
   for i in range(len(output)):
 #    print output[i], type(output[i])
 #    print output[i][0:4]
+    f.write("%s " %filename)
     f.write("%s %s %s %s " %(output[i][0], output[i][1],
                             output[i][2], output[i][3]))
     for k in output[i][4]:
