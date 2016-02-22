@@ -9,6 +9,7 @@ mx,my = 0,0	# drawing mouse location
 p_start=[]	# start point
 p_end=[]	# end point
 drawing = False
+mode = False
 
 def draw_bbox(event,x,y,flags,param):
     global ix,iy,mx,my,p_start,p_end,drawing
@@ -73,6 +74,12 @@ def transform(p_start,p_end,img_size,grid_num):
     bbox+=[(x,y,w,h,c)]
   return bbox
 
+def draw_grid(img,img_size,grid_num):
+  t=img_size/grid_num
+  for i in range(grid_num):
+    cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(0,0,0),1)
+    cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(0,0,0),1)
+
 ########################
 #        START         #
 ########################
@@ -88,15 +95,19 @@ while(1):
             cv2.rectangle(img,p_start[i],p_end[i],(0,255,0),3)
     if drawing :
         cv2.rectangle(img,(ix,iy),(mx,my),(255,0,0),3)
+    if mode:
+        draw_grid(img,img_size,grid_num)
 
     cv2.imshow('image',img)
 
     # Command
-    if cv2.waitKey(20) & 0xFF == 27:
+    if cv2.waitKey(10) & 0xFF == 27:
         break
-    elif cv2.waitKey(20) & 0xFF == ord('s'):
+    elif cv2.waitKey(10) & 0xFF == ord('s'):
 	print tabulate(transform(p_start,p_end,img_size,grid_num),
                headers=['x','y','w','h','c'])
-
+    elif cv2.waitKey(10) & 0xFF == ord('m'):
+        mode = not mode
+        print mode
 cv2.destroyAllWindows()
 
