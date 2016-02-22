@@ -23,15 +23,27 @@ w = theano.shared(
 
 output = T.dot(x,w).reshape((16,7))
 #cost = T.sum((output[:,4]-y_hat[:,4])**2)
-x1 = (output[:,4]-y_hat[:,4])**2
-delta_x = (output[:,0]-y_hat[:,0])**2
-delta_y = (output[:,1]-y_hat[:,1])**2
-delta_w = (output[:,2]-y_hat[:,2])**2
-delta_h = (output[:,3]-y_hat[:,3])**2
-delta_c1= (output[:,5]-y_hat[:,5])**2
-delta_c2= (output[:,6]-y_hat[:,6])**2
+x1 = ((output[:,4]-y_hat[:,4])**2)
 
-cost = T.sum(x1 * delta_x+x1 * delta_y+x1 * delta_w+x1 * delta_h+x1 * delta_c1+x1 * delta_c2)
+x2 = np.repeat(x1.reshape((16,1)),4,axis=1)
+x3 = np.repeat(x1.reshape((16,1)),2,axis=1)
+delta_xywh = ((output[:,0:4]-y_hat[:,0:4])**2)
+delta_class= ((output[:,5:]-y_hat[:,5:])**2)
+
+#delta_x = (output[:,0]-y_hat[:,0])**2
+#delta_y = (output[:,1]-y_hat[:,1])**2
+#delta_w = (output[:,2]-y_hat[:,2])**2
+#delta_h = (output[:,3]-y_hat[:,3])**2
+#delta_c1= (output[:,5]-y_hat[:,5])**2
+#delta_c2= (output[:,6]-y_hat[:,6])**2
+
+#cost = T.sum(x1 * delta_x+x1 * delta_y+x1 * delta_w+x1 * delta_h+x1 * delta_c1+x1 * delta_c2)
+
+cost1 = T.sum(x2*delta_xywh + x3*delta_class) #wrong (16,4)+(16,2)
+cost2 = T.sum(x2*delta_xywh)
+cost3 = T.sum(x3*delta_class)
+cost4 = cost2 + cost3
+
 dw = T.grad(cost,w)
 
 f = theano.function(inputs=[x,y_hat],
