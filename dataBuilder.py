@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from tabulate import tabulate
 
+filename = 'dog.jpg'
 img_size = 480  # image weight/height
 grid_num = 4    # grid cell number per side
 mx,my = 0,0	# drawing mouse location
@@ -71,6 +72,9 @@ def transform(p_start,p_end,img_size,grid_num):
     y=y%float(img_size/grid_num)
     w=w/float(img_size)
     h=h/float(img_size)
+
+    x=x/float(img_size/grid_num)
+    y=y/float(img_size/grid_num)
     bbox+=[(x,y,w,h,c)]
   return bbox
 
@@ -80,6 +84,20 @@ def draw_grid(img,img_size,grid_num):
     cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(0,0,0),1)
     cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(0,0,0),1)
 
+def save2file(filename):
+  f = open('img_label','a')
+  output = transform(p_start,p_end,img_size,grid_num)
+#  print len(output)
+  for i in range(len(output)):
+#    print output[i], type(output[i])
+#    print output[i][0:4]
+    f.write("%s %s %s %s " %(output[i][0], output[i][1],
+                            output[i][2], output[i][3]))
+    for k in output[i][4]:
+      f.write("%s " %k)
+    f.write("\n")
+  f.close()
+
 ########################
 #        START         #
 ########################
@@ -87,7 +105,7 @@ cv2.namedWindow('image')
 cv2.setMouseCallback('image',draw_bbox)
 
 while(1):
-    img = cv2.imread('dog.jpg')
+    img = cv2.imread(filename)
     img = cv2.resize(img, (img_size,img_size))
     # Draw bbox
     if len(p_end) !=0 and not drawing:
@@ -101,12 +119,14 @@ while(1):
     cv2.imshow('image',img)
 
     # Command
-    if cv2.waitKey(10) & 0xFF == 27:
+    if cv2.waitKey(20) & 0xFF == 27:
         break
-    elif cv2.waitKey(10) & 0xFF == ord('s'):
-	print tabulate(transform(p_start,p_end,img_size,grid_num),
-               headers=['x','y','w','h','c'])
-    elif cv2.waitKey(10) & 0xFF == ord('m'):
+    elif cv2.waitKey(20) & 0xFF == ord('s'):
+	#print tabulate(transform(p_start,p_end,img_size,grid_num),
+        #       headers=['x','y','w','h','c'])
+        print "Save to file..."
+        save2file(filename)
+    elif cv2.waitKey(20) & 0xFF == ord('m'):
         mode = not mode
         print mode
 cv2.destroyAllWindows()
