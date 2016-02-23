@@ -7,18 +7,6 @@
 #  Date: 2015.12.25
 #  Author: Jackie
 #--------------------------------------------------------------------------
-'''
-1. Add shuffle
-2. Add L1 L2 Regularization
-3. Add Weight Decay
-4. Add to add NLL
-5. Add tanh
---
-1. Record the wrong index on test set
-2. Save the record on l
-3. show the misrecognized class w/ tabulate
-4. Print the most frequent misrecognized class [2,3,16,13,40]
-'''
 import theano, theano.tensor as T
 import scipy.io as sio
 import numpy as np
@@ -45,6 +33,10 @@ def tanh(x):
   y = T.tanh(x)
   return y
 
+def Softmax(x):
+  y = T.nnet.softmax(x)
+  return y
+
 ##########################
 #     Cost Function      #
 ##########################
@@ -63,9 +55,11 @@ def NLL(y,y_hat):
 def record(filename,option,params):
   f = open(filename,'a')
   if option == 1:
-    f.write("%.2f %d %d %d %.7f %d\n" %(params[1],params[0],params[2],params[3],params[4],params[5]))
+    f.write("%.2f %d %d %d %.7f %d\n" %(params[1],params[0],params[2],
+                                        params[3],params[4],params[5]))
   elif option == 2: #Add L1,L2
-    f.write("%.2f %.2f %d %d %d %.7f %d %.10f %.10f\n" %(params[1],params[8],params[0],params[2],params[3],params[4],params[5],params[6],params[7]))
+    f.write("%.2f %.2f %d %d %d %.7f %d %.10f %.10f\n" %(params[1],params[8],
+     params[0],params[2],params[3],params[4],params[5],params[6],params[7]))
   f.close()
 
 ##########################
@@ -102,13 +96,11 @@ class HiddenLayer(object):
     self.input = input
     self.n_batch = n_batch
     self.act = act
-#    w_values = np.asarray(np.random.uniform(-0.1,0.1,size=(n_in,n_out)))
     w_values = np.asarray(np.random.uniform(
                 -4*np.sqrt(6. / (n_in+n_out)),
                  4*np.sqrt(6. / (n_in+n_out)),
                  size=(n_in,n_out)))
     w = theano.shared(value=w_values,name='w')
-#    b_values = np.asarray(np.random.uniform(-0.1,0.1,size=(n_out,)))
     b_values = np.asarray(np.zeros((n_out,)))
     b = theano.shared(value=b_values,name='b')
     self.w = w
@@ -129,7 +121,6 @@ class CNN_Layer(object):
     w_bound = np.sqrt(6./(fan_in+fan_out))
     w_values = np.asarray(np.random.uniform(-w_bound,w_bound,size=filter_shape))
     w = theano.shared(value=w_values,name='W')
-#    b_values = np.asarray(np.random.uniform(-0.1,0.1,size=(filter_shape[0],)))
     b_values = np.asarray(np.zeros((filter_shape[0],)))
     b = theano.shared(value=b_values,name='B')
     self.w = w
@@ -141,73 +132,38 @@ class CNN_Layer(object):
     self.params = [self.w, self.b]
 
 ##########################
-#     Softmax_Layer      #
-##########################
-class SoftMax_Layer(object):
-  def __init__(self, input, n_in, n_out):
-    self.w = theano.shared(
-             value=np.zeros((n_in, n_out)),
-             name='w')
-    self.b = theano.shared(
-             value=np.zeros((n_out,)),
-             name='b')
-    self.output = T.nnet.softmax(T.dot(input, self.w) + self.b)
-    self.params = [self.w, self.b]
-
-
-##########################
 #          MLP           #
 ##########################
 class MLP(object):
   def __init__(self,input,y_hat,n_in,n_hidden,n_out,n_batch):
     self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,Sigmoid)
-#    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_out,n_batch,Sigmoid)
-    self.L2 = SoftMax_Layer(self.L1.output,n_hidden,n_out)
+    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_out,n_batch,Softmax)
     self.params = self.L1.params + self.L2.params
     self.output = self.L2.output
+
+def loadData(filename,grid_num,class_num):
+  #trainLabels(training_num, grid_sq, xywhC)
+  label = np.loadtxt(filename,dtype='str')
+  grid_sq = grid_num **2
+  trainLabels = []
+  #print label; print label.shape
+  for i in range(label.shape[0]):
+    xywh = np.repeat(label[i][1:5].reshape((1,4)),grid_sq,axis=0)
+    #print xywh, xywh.shape
+    clas = np.repeat(label[i][5+grid_sq:].reshape((1,class_num)),grid_sq,axis=0)
+    #print clas, clas.shape
+    tmp = np.concatenate((xywh,label[i][5:5+grid_sq].reshape((grid_sq,1)),clas),axis=1)
+    #print tmp, tmp.shape
+    trainLabels += [tmp]
+  trainLabels = np.asarray(trainLabels).reshape((label.shape[0],grid_sq,5+class_num))
+  print trainLabels, trainLabels.shape
 
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
   ##########################
   #       Load Data        #
   ##########################
-  mat = sio.loadmat('caltech101_silhouettes_28_split1.mat')
-  image_size = 28
-  trainData = mat['train_data']
-  trainLabels = mat['train_labels'].reshape(trainData.shape[0])
+  loadData('img_label',4,2)
 
-  testData = mat['test_data']
-  testLabels = mat['test_labels'].reshape(testData.shape[0])
-#  classNames = mat['classnames']
-  mx = np.identity(101)
-
-  trainLabel=[]
-  for key in range(trainData.shape[0]):
-    trainLabel.append(mx[trainLabels[key]-1])
-  trainLabel = np.array(trainLabel)
-
-  testLabel=[]
-  for key in range(testData.shape[0]):
-    testLabel.append(mx[testLabels[key]-1])
-  testLabel = np.array(testLabel)
-
-  dis_trainLabels=np.zeros(101)
-  for i in range(trainLabels.shape[0]):
-    dis_trainLabels[trainLabels[i]-1]+=1
-  dis_testLabels=np.zeros(101)
-  for i in range(testLabels.shape[0]):
-    dis_testLabels[testLabels[i]-1]+=1
-
-# ##########################
-# #       Load Data        #
-# ##########################
-#   mat = sio.loadmat('caltech101_silhouettes_16')
-#   train = mat['X']
-#   ans = mat['Y'].reshape(train.shape[0])
-#   mx = np.identity(101)
-#   label=[]
-#   for key in range(train.shape[0]):
-#     label.append(mx[ans[key]-1])
-#   label = np.array(label)
 
 ##########################
 #       Variable         #
@@ -302,29 +258,10 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
                   testWrongClass[correctLabel] = testWrongClass[correctLabel]+[[wrongLabel,1]]
             testCtr+=1
 
-        #print("e=%3d Total = %d,train Correct_rate: %.2f%% test Correct_rate: %.2f%%" %(e+1,trainCtr,trainCorrect*100./trainCtr,testCorrect*100./testCtr))
-#        print dis_trainLabels_correct*100/dis_trainLabels
-        print dis_testLabels_correct*100/dis_testLabels
+        print("e=%3d Total = %d,train Correct_rate: %.2f%% test Correct_rate: %.2f%%" %(e+1,trainCtr,trainCorrect*100./trainCtr,testCorrect*100./testCtr))
 
-        MRC = np.asarray(misRecognizedClass)
-        rank = MRC.argsort()
-        for d in rank[-1:-6:-1]:
-          print d, dis_testLabels_correct[d]*100/dis_testLabels[d],  MRC[d]#len(testWrongClass[d])#, sorted(testWrongClass[d])
-#          print tabulate(sorted(testWrongClass[d]),headers=["Class","Count"])
-        print trainCorrect*100./trainCtr,testCorrect*100./testCtr
-        print np.corrcoef(dis_trainLabels, MRC)
-#        np.savetxt('l', dis_testLabels_correct*100/dis_testLabels)
-#        print dis_testLabels_correct*100/dis_testLabels - dis_trainLabels_correct*100/dis_trainLabels
-#        for d in range(101):
-#          print d, misRecognizedClass[d]
-#        gll = plt.plot(misRecognizedClass)
-#        grd = plt.grid(True)
-#        plt.show()
-#        raw_input()
         record('20160111_auto_cnn_dnn_log',2,(e+1,trainCorrect*100./trainCtr,batch_size,neuron,learning_rate,filter_size,lambda1,lambda2,testCorrect*100./testCtr))
-        #if correct_rate > last_time:
-        #  last_time = correct_rate
-        #  dump all parameters [file_name]
+
 #        if trainCorrect*100./trainCtr > good_record:
 #          good_record = trainCorrect*100./trainCtr
 #          file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
@@ -340,24 +277,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
 
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
-def all_p_test():
-   batch_size_list=[10,50,100,500]
-   neuron_list=[64,128,256,512,1024]
-   learning_rate_list=[0.1,0.01,0.001,0.0001]
-   filter_size_list=[3,5]
-   for i4 in filter_size_list:
-     for i1 in batch_size_list:
-       for i2 in neuron_list:
-         for i3 in learning_rate_list:
-           test_mlp(i1,i2,i3,i4,1000,0,0,0)
-#  L1 = [0.00001,0.000001,0.0000001,0.00000001,0.000000001,0.0000000001]
-#  L2 = [0.00001,0.000001,0.0000001,0.00000001,0.000000001,0.0000000001]
-#  for i1 in L1:
-#    for i2 in L2:
-#      test_mlp(10,256,0.06,5,1000,i1,i2,0.01)
-
-# #def focus_test():
-#   #load filter_log
 
 # def trail_test(bs,nu,lr,fs):
 #   #rebuild a new one
@@ -413,24 +332,6 @@ def all_p_test():
 
 
 if __name__ == '__main__':
-#  all_p_test()
+#  loadData('img_label',4,2)
   test_mlp(50,128,0.06,5,1000,0,0,0)
-
-# 81.73% on training data
-#  test_mlp(10,256,0.01,3,1000)
-
-# 81.0% on training data
-#  test_mlp(10,256,0.01,5,1000)
-
-# 82.34% on training data
-#  test_mlp(10,256,0.05,5,1000)
-
-# 69.15%
-#  test_mlp(10,256,0.10,5,1000)
-
-# 80.56%
-#  test_mlp(10,256,0.04,5,1000)
-
-#  test_mlp(10,256,0.06,5,1000,0,0.00001)
-
 #  trail_test(1,512,0.001,3)
