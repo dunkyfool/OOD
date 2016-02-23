@@ -158,6 +158,9 @@ def loadData(filename,grid_num,class_num):
   trainLabels = np.asarray(trainLabels).reshape((label.shape[0],grid_sq,5+class_num))
   print trainLabels, trainLabels.shape
 
+def trainingNetwork():
+  pass
+
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
   ##########################
   #       Load Data        #
@@ -171,6 +174,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
 
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
+  image_size = 28
   batch_size = bs
   epoch_num = ep
   neuron = nu
