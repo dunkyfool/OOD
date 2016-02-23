@@ -8,7 +8,8 @@
 #  Author: Jackie
 #--------------------------------------------------------------------------
 #  Warning:
-#  loadData lacks load trainData
+#  Cost function
+#  verify accurarcy
 #  shuffle not working
 #  image size in this code and dataBuilder must be the same
 import theano, theano.tensor as T
@@ -186,11 +187,12 @@ def trainNetwork(g,v,trainData,trainLabels,epoch,epoch_num):
     #shuffle(train)
 
 
-def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
+def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   ##########################
   #       Load Data        #
   ##########################
-  loadData('img_label',4,2)
+  img_size = 480
+  trainData, trainLabels = loadData('img_label',4,2,img_size)
 
 
 ##########################
@@ -199,7 +201,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
 
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
-  image_size = 28
+  img_size = 480
   batch_size = bs
   epoch_num = ep
   neuron = nu
@@ -208,17 +210,18 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
   lambda1 = l1
   lambda2 = l2
   weight_decay = wd
-  cnn_output_size = pow((image_size-filter_size+1)/2,2)
+  output_total = opt
+  cnn_output_size = ((img_size-filter_size+1)/2)**2
   good_record = 0
 
-  cnn_input = x.reshape((batch_size,1,image_size,image_size))
+  cnn_input = x.reshape((batch_size,3,img_size,img_size))
   cnn = CNN_Layer(cnn_input,
-                  filter_shape=(1,1,filter_size,filter_size),
-                  image_shape=(batch_size,1,image_size,image_size),
+                  filter_shape=(3,3,filter_size,filter_size),
+                  image_shape=(batch_size,3,img_size,img_size),
                   poolsize=(2,2))
 
   dnn_input = cnn.output.reshape((batch_size,cnn_output_size))
-  dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,101,batch_size)
+  dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
   params = cnn.params + dnn.params
   L1 = ( abs(cnn.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
@@ -237,7 +240,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
 #    Training Model      #
 ##########################
 
-  trainNetwork()
+#  trainNetwork()
 #        if trainCorrect*100./trainCtr > good_record:
 #          good_record = trainCorrect*100./trainCtr
 #          file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
@@ -264,7 +267,8 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd):
 
 
 if __name__ == '__main__':
-  loadData('img_label',4,2,480)
+#  loadData('img_label',4,2,480)
 #  trainNetwork()
-#  test_mlp(50,128,0.06,5,1000,0,0,0)
+  test_mlp(1,51200,0.01,5,100,0,0,0,16*7)
 #  trail_test(1,512,0.001,3)
+  pass
