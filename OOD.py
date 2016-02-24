@@ -163,16 +163,21 @@ def loadData(filename,grid_num,class_num,img_size):
     #cv2.waitKey(0) & 0xFF
     #cv2.destroyAllWindows()
     xywh = np.repeat(label[i][1:5].reshape((1,4)),grid_sq,axis=0)
+    xywh = xywh.astype(np.float)
     #print xywh, xywh.shape
     clas = np.repeat(label[i][5+grid_sq:].reshape((1,class_num)),grid_sq,axis=0)
+    clas = clas.astype(np.int)
     #print clas, clas.shape
-    tmp = np.concatenate((xywh,label[i][5:5+grid_sq].reshape((grid_sq,1)),clas),axis=1)
+
+    score = label[i][5:5+grid_sq].reshape((grid_sq,1))
+    score = score.astype(np.float)
+    tmp = np.concatenate((xywh,score,clas),axis=1)
     #print tmp, tmp.shape
     #print img.shape
-    trainData += [img.flatten()]
-    trainLabels += [tmp]
+    trainData += [img.reshape((3*img_size**2))]
+    trainLabels += [tmp.reshape((grid_sq*(5+class_num)))]
   trainData = np.asarray(trainData)
-  trainLabels = np.asarray(trainLabels).reshape((label.shape[0],grid_sq,5+class_num))
+  trainLabels = np.asarray(trainLabels)#.reshape((label.shape[0],grid_sq,5+class_num))
   #print trainLabels, trainLabels.shape
   #print trainData, trainData.shape
   return trainData, trainLabels
@@ -202,6 +207,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
   img_size = 480
+  channel = 3
   batch_size = bs
   epoch_num = ep
   neuron = nu
@@ -211,7 +217,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   lambda2 = l2
   weight_decay = wd
   output_total = opt
-  cnn_output_size = ((img_size-filter_size+1)/2)**2
+  cnn_output_size = channel*((img_size-filter_size+1)/2)**2
   good_record = 0
 
   cnn_input = x.reshape((batch_size,3,img_size,img_size))
@@ -226,10 +232,8 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   params = cnn.params + dnn.params
   L1 = ( abs(cnn.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
   L2 = ( (cnn.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
-  #L1 = T.sum(map(abs,params))
-  #L2 = T.sum(map(lambda x: x ** 2,params))
-#  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
-  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
+  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
+#  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
   gparams = [ T.grad(cost,para) for para in params]
   g=theano.function(inputs=[x,y_hat],
                     outputs=[dnn.output,cost],
@@ -239,7 +243,8 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
 ##########################
 #    Training Model      #
 ##########################
-
+  ans,c = g(trainData[0:1],trainLabels[0:1])
+  print ans;print c
 #  trainNetwork()
 #        if trainCorrect*100./trainCtr > good_record:
 #          good_record = trainCorrect*100./trainCtr
@@ -269,6 +274,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
 if __name__ == '__main__':
 #  loadData('img_label',4,2,480)
 #  trainNetwork()
-  test_mlp(1,51200,0.01,5,100,0,0,0,16*7)
+  test_mlp(1,512,0.01,5,100,0,0,0,16*7)
 #  trail_test(1,512,0.001,3)
   pass
