@@ -56,6 +56,24 @@ def NLL(y,y_hat):
   k = y[T.arange(row), y_hat.argmax(axis=1)]
   return -T.mean(T.log(k))
 
+def YOLO(y,y_hat,batch_size,grid_size,class_num):
+  #slow for loop
+  grid_sq = grid_size**2
+  y = y.reshape((batch_size,grid_sq,5+class_num))
+  y_hat = y_hat.reshape((batch_size,grid_sq,5+class_num))
+
+  score = (y[:,:,4]-y_hat[:,:,4])**2
+  cost = 0
+  for i in range(4):
+    tmp = (y[:,:,i]-y_hat[:,:,i])**2
+    cost += T.sum(score*tmp)
+
+  for i in range(class_num):
+    tmp = (y[:,:,5+i]-y_hat[:,:,5+i])
+    cost += T.sum(score*tmp)
+
+  return cost
+
 ##########################
 #    Record Function     #
 ##########################
@@ -192,7 +210,7 @@ def trainNetwork(g,v,trainData,trainLabels,epoch,epoch_num):
     #shuffle(train)
 
 
-def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
+def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   ##########################
   #       Load Data        #
   ##########################
@@ -206,8 +224,10 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
 
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
-  img_size = 480
-  channel = 3
+  img_size = img_s
+  channel = chl_s
+  grid_size = grid_s
+  class_num = cls_n
   batch_size = bs
   epoch_num = ep
   neuron = nu
@@ -216,7 +236,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   lambda1 = l1
   lambda2 = l2
   weight_decay = wd
-  output_total = opt
+  output_total = (5+class_num)*grid_size**2
   cnn_output_size = channel*((img_size-filter_size+1)/2)**2
   good_record = 0
 
@@ -232,7 +252,8 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
   params = cnn.params + dnn.params
   L1 = ( abs(cnn.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
   L2 = ( (cnn.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
-  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
+  cost = YOLO(dnn.output,y_hat,batch_size,grid_size,class_num)
+#  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
 #  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
   gparams = [ T.grad(cost,para) for para in params]
   g=theano.function(inputs=[x,y_hat],
@@ -245,6 +266,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print ans;print c
+#  print trainLabels[0:1].reshape((16,7))
 #  trainNetwork()
 #        if trainCorrect*100./trainCtr > good_record:
 #          good_record = trainCorrect*100./trainCtr
@@ -274,6 +296,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,opt):
 if __name__ == '__main__':
 #  loadData('img_label',4,2,480)
 #  trainNetwork()
-  test_mlp(1,512,0.01,5,100,0,0,0,16*7)
+  test_mlp(1,512,0.01,5,100,0,0,0,480,3,4,2)
 #  trail_test(1,512,0.001,3)
   pass
