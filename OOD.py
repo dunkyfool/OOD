@@ -299,16 +299,16 @@ def show(answer,filename,img_size,grid_size):
   for i in range(4*4):
     print answer[i]
     if answer[i,4]>0.5:
-      center_x = int((i/4+answer[i,0])*(img_size/grid_size))
-      center_y = int((i%4+answer[i,1])*(img_size/grid_size))
+      center_x = int((i%4+answer[i,0])*(img_size/grid_size))
+      center_y = int((i/4+answer[i,1])*(img_size/grid_size))
       real_w = int(answer[i,2]*(img_size))
       real_h = int(answer[i,3]*(img_size))
-      start_x = int((2*center_x+real_h-1)/2)
-      start_y = int((2*center_y+real_w-1)/2)
-      end_x = int((2*center_x-real_h+1)/2)
-      end_y = int((2*center_y-real_w+1)/2)
+      start_x = int((2*center_x+real_w-1)/2)
+      start_y = int((2*center_y+real_h-1)/2)
+      end_x = int((2*center_x-real_w+1)/2)
+      end_y = int((2*center_y-real_h+1)/2)
       print start_x,start_y,end_x,end_y
-      cv2.rectangle(img,(start_y,start_x),(end_y,end_x),(0,255,0),3)
+      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),3)
       cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
   plt.imshow(img)
   plt.show()
