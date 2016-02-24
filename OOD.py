@@ -175,10 +175,12 @@ def loadData(filename,grid_num,class_num,img_size):
   grid_sq = grid_num **2
   trainData = []
   trainLabels = []
+  filenameList = []
   #print label; print label.shape
   for i in range(label.shape[0]):
     img = cv2.imread(os.path.join('data/',label[i][0]))
     img = cv2.resize(img,(img_size,img_size))
+    filenameList+=[label[i][0]]
     #cv2.imshow('img',img)
     #cv2.waitKey(0) & 0xFF
     #cv2.destroyAllWindows()
@@ -200,7 +202,7 @@ def loadData(filename,grid_num,class_num,img_size):
   trainLabels = np.asarray(trainLabels)#.reshape((label.shape[0],grid_sq,5+class_num))
   #print trainLabels, trainLabels.shape
   #print trainData, trainData.shape
-  return trainData, trainLabels
+  return filenameList,trainData, trainLabels
 
 ##########################
 # Train & Valid function #
@@ -286,12 +288,37 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num):
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
+def show(answer,filename,img_size,grid_size):
+#  print img_size,grid_size
+#  print filename
+  answer = answer[0].reshape((16,7))
+#  print answer.shape
+#  raw_input()
+  img = cv2.imread(os.path.join('data/',filename))
+  img = cv2.resize(img, (img_size,img_size))
+  for i in range(4*4):
+    print answer[i]
+    if answer[i,4]>0.5:
+      center_x = int((i/4+answer[i,0])*(img_size/grid_size))
+      center_y = int((i%4+answer[i,1])*(img_size/grid_size))
+      real_w = int(answer[i,2]*(img_size))
+      real_h = int(answer[i,3]*(img_size))
+      start_x = int((2*center_x+real_h-1)/2)
+      start_y = int((2*center_y+real_w-1)/2)
+      end_x = int((2*center_x-real_h+1)/2)
+      end_y = int((2*center_y-real_w+1)/2)
+      print start_x,start_y,end_x,end_y
+      cv2.rectangle(img,(start_y,start_x),(end_y,end_x),(0,255,0),3)
+      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
+  plt.imshow(img)
+  plt.show()
+
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   ##########################
   #       Load Data        #
   ##########################
   img_size = 480
-  trainData, trainLabels = loadData('img_label',4,2,img_size)
+  filenameList, trainData, trainLabels = loadData('oracle_label',4,2,img_size)
 
 
 ##########################
@@ -342,34 +369,65 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
   trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num)
-#        if trainCorrect*100./trainCtr > good_record:
-#          good_record = trainCorrect*100./trainCtr
-#          file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
-#          save_params(file_name,
-#                      params=[dnn.L1.w.get_value(),
-#                              dnn.L1.b.get_value(),
-#                              dnn.L2.w.get_value(),
-#                              dnn.L2.b.get_value(),
-#                              cnn.w.get_value(),
-#                              cnn.b.get_value()])
-### Validation on EVERY FIVE EPOCHS [END]
+  file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
+  save_params(file_name,params=[dnn.L1.w.get_value(),
+                               dnn.L1.b.get_value(),
+                               dnn.L2.w.get_value(),
+                               dnn.L2.b.get_value(),
+                               cnn.w.get_value(),
+                               cnn.b.get_value()])
 
+def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
+  #load image
+  img_size = 480
+  filenameList, trainData, trainLabels = loadData('circle_label',4,2,img_size)
 
-# def trail_test(bs,nu,lr,fs):
-#   print 'Load w and b...'
-#   save_file = open('500_512_0.001_3_para')
-#   dnn.L1.w.set_value(cPickle.load(save_file))
-#   dnn.L1.b.set_value(cPickle.load(save_file))
-#   dnn.L2.w.set_value(cPickle.load(save_file))
-#   dnn.L2.b.set_value(cPickle.load(save_file))
-#   cnn.w.set_value(cPickle.load(save_file))
-#   cnn.b.set_value(cPickle.load(save_file))
-#   save_file.close()
+  x = T.matrix('x')
+  y_hat = T.matrix('y_hat')
+  img_size = img_s
+  channel = chl_s
+  grid_size = grid_s
+  class_num = cls_n
+  batch_size = bs
+#  epoch_num = ep
+  neuron = nu
+  learning_rate = lr
+  filter_size = fs
+  output_total = (5+class_num)*grid_size**2
+  cnn_output_size = channel*((img_size-filter_size+1)/2)**2
 
+  cnn_input = x.reshape((batch_size,3,img_size,img_size))
+  cnn = CNN_Layer(cnn_input,
+                  filter_shape=(3,3,filter_size,filter_size),
+                  image_shape=(batch_size,3,img_size,img_size),
+                  poolsize=(2,2))
+
+  dnn_input = cnn.output.reshape((batch_size,cnn_output_size))
+  dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
+
+  params = cnn.params + dnn.params
+  g=theano.function(inputs=[x],outputs=[dnn.output])
+
+  print 'Load w and b...'
+  save_file = open('1_512_0.0001_5_para')
+  dnn.L1.w.set_value(cPickle.load(save_file))
+  dnn.L1.b.set_value(cPickle.load(save_file))
+  dnn.L2.w.set_value(cPickle.load(save_file))
+  dnn.L2.b.set_value(cPickle.load(save_file))
+  cnn.w.set_value(cPickle.load(save_file))
+  cnn.b.set_value(cPickle.load(save_file))
+  save_file.close()
+
+  #Test and print
+  for i in range(trainData.shape[0]):
+    y = g(trainData[i*batch_size:(i+1)*batch_size])
+    print trainLabels[i*batch_size:(i+1)*batch_size].shape
+    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size)
+    show(y,filenameList[i],img_size,grid_size)
+    #raw_input()
 
 if __name__ == '__main__':
-#  loadData('img_label',4,2,480)
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,100,0,0,0,480,3,4,2)
-#  trail_test(1,512,0.001,3)
+  test_mlp(1,512,0.0001,5,200,0,0,0,480,3,4,2)
+#  trail_test(1,512,0.0001,5,480,3,4,2)
   pass
