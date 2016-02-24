@@ -309,7 +309,7 @@ def show(answer,filename,img_size,grid_size):
       end_y = int((2*center_y-real_h+1)/2)
       print start_x,start_y,end_x,end_y
       cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),3)
-      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
+#      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
   plt.imshow(img)
   plt.show()
 
@@ -318,7 +318,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   #       Load Data        #
   ##########################
   img_size = 480
-  filenameList, trainData, trainLabels = loadData('oracle_label',4,2,img_size)
+  filenameList, trainData, trainLabels = loadData('img_label',4,2,img_size)
 
 
 ##########################
@@ -380,7 +380,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
   #load image
   img_size = 480
-  filenameList, trainData, trainLabels = loadData('circle_label',4,2,img_size)
+  filenameList, trainData, trainLabels = loadData('img_label',4,2,img_size)
 
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
@@ -428,6 +428,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,200,0,0,0,480,3,4,2)
-#  trail_test(1,512,0.0001,5,480,3,4,2)
+#  test_mlp(1,512,0.0001,5,200,0,0,0,480,3,4,2)
+  trail_test(1,512,0.0001,5,480,3,4,2)
   pass
