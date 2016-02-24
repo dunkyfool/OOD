@@ -8,9 +8,8 @@
 #  Author: Jackie
 #--------------------------------------------------------------------------
 #  Warning:
-#  Cost function
+#  Cost function (slow for loop)
 #  verify accurarcy
-#  shuffle not working
 #  image size in this code and dataBuilder must be the same
 import theano, theano.tensor as T
 import scipy.io as sio
@@ -69,7 +68,7 @@ def YOLO(y,y_hat,batch_size,grid_size,class_num):
     cost += T.sum(score*tmp)
 
   for i in range(class_num):
-    tmp = (y[:,:,5+i]-y_hat[:,:,5+i])
+    tmp = (y[:,:,5+i]-y_hat[:,:,5+i])**2
     cost += T.sum(score*tmp)
 
   return cost
@@ -162,10 +161,13 @@ class CNN_Layer(object):
 class MLP(object):
   def __init__(self,input,y_hat,n_in,n_hidden,n_out,n_batch):
     self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,Sigmoid)
-    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_out,n_batch,Softmax)
+    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_out,n_batch,Sigmoid)
     self.params = self.L1.params + self.L2.params
     self.output = self.L2.output
 
+##########################
+#      Load Data         #
+##########################
 def loadData(filename,grid_num,class_num,img_size):
   #trainLabels(training_num, grid_sq, xywhC)
   #trainData will follow img_label to build the trainData
@@ -200,15 +202,89 @@ def loadData(filename,grid_num,class_num,img_size):
   #print trainData, trainData.shape
   return trainData, trainLabels
 
+##########################
+# Train & Valid function #
+##########################
+def printScore(output,answer):
+  output = output[0]
+#  print 'output '+str(output.shape)
+#  print 'answer '+str(answer.shape)
+  pre_score=output[0,4::7].reshape((4,4))
+  cor_score=answer[0,4::7].reshape((4,4))
+  print "########### Object Score###########"
+  print "Predict"
+  print tabulate(pre_score,tablefmt='grid')
+  print "Answer"
+  print tabulate(cor_score,tablefmt='grid')
+  print "###################################"
 
-def trainNetwork(g,v,trainData,trainLabels,epoch,epoch_num):
+  pre_x=output[0,0::7].reshape((4,4))
+  cor_x=answer[0,0::7].reshape((4,4))
+  pre_y=output[0,1::7].reshape((4,4))
+  cor_y=answer[0,1::7].reshape((4,4))
+  pre_w=output[0,2::7].reshape((4,4))
+  cor_w=answer[0,2::7].reshape((4,4))
+  pre_h=output[0,3::7].reshape((4,4))
+  cor_h=answer[0,3::7].reshape((4,4))
+
+  pre_gridClass=[]
+  cor_gridClass=[]
+  for i in range(4*4):
+    pre_gridClass+=[output[0,5+7*i:5+7*i+2]]
+    cor_gridClass+=[answer[0,5+7*i:5+7*i+2]]
+  pre_gridClass = np.asarray(pre_gridClass).reshape((4,4,2))
+  cor_gridClass = np.asarray(cor_gridClass).reshape((4,4,2))
+
+  pre_list=[]
+  cor_list=[]
+  print "############## BBox ###############"
+  for i in range(4):
+    for j in range(4):
+      if cor_score[i][j]==1:
+        delta=0
+        delta+=abs(cor_x[i][j]-pre_x[i][j])
+        delta+=abs(cor_y[i][j]-pre_y[i][j])
+        delta+=abs(cor_w[i][j]-pre_w[i][j])
+        delta+=abs(cor_h[i][j]-pre_h[i][j])
+        print("BBox center:\t(%.2f,%.2f,%.2f,%.2f)" %(cor_x[i][j],cor_y[i][j],
+                                                    cor_w[i][j],cor_h[i][j]))
+        print("Grid(%d,%d):\t(%.2f,%.2f,%.2f,%.2f), delta: %.2f" %(i,j,pre_x[i][j],pre_y[i][j],
+                                                                pre_w[i][j],pre_h[i][j],delta))
+        pre_list+=[pre_gridClass[i,j,:].argmax()]
+        cor_list+=[cor_gridClass[i,j,:].argmax()]
+      else:
+        pre_list+=[-1]
+        cor_list+=[-1]
+  print "###################################"
+  print "############# Class ###############"
+  pre_list = np.asarray(pre_list).reshape((4,4))
+  cor_list = np.asarray(cor_list).reshape((4,4))
+  print "Predict"
+  print tabulate(pre_list,tablefmt="grid")
+  print "Answer"
+  print tabulate(cor_list,tablefmt="grid")
+  print "###################################"
+  pass
+
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num):
+  good_score = 0
   start_time = timeit.default_timer()
   for e in range(epoch_num):
     for i in range(trainData.shape[0]/batch_size):
       y,c = g(trainData[i*batch_size:(i+1)*batch_size],
-              trainLabels[i*batch_size:(i+1)*batch_size,:,:])
-    #shuffle(train)
+              trainLabels[i*batch_size:(i+1)*batch_size])
+    print("Epoch=%3d & cost= %.3f" %(e+1,c))
+    #shuffle(trainData,trainLabels,channel*img_size**2) #import img_size and channel
+##########################
+#       Validation       #
+##########################
+    if (e+1)%10==0:
+      for x in range(trainLabels.shape[0]):
+        output = v(trainData[x:x+1])
+        printScore(output,trainLabels[x:x+1])
 
+  end_time = timeit.default_timer()
+  print('Total time: %.2f' % ((end_time-start_time)/60.))
 
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   ##########################
@@ -238,7 +314,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   weight_decay = wd
   output_total = (5+class_num)*grid_size**2
   cnn_output_size = channel*((img_size-filter_size+1)/2)**2
-  good_record = 0
 
   cnn_input = x.reshape((batch_size,3,img_size,img_size))
   cnn = CNN_Layer(cnn_input,
@@ -259,15 +334,14 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   g=theano.function(inputs=[x,y_hat],
                     outputs=[dnn.output,cost],
                     updates=MyUpdate(params,gparams,learning_rate,weight_decay))
-  valid_model=theano.function(inputs=[x],outputs=[dnn.output])
+  v=theano.function(inputs=[x],outputs=[dnn.output])
 
 ##########################
 #    Training Model      #
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
-  print ans;print c
-#  print trainLabels[0:1].reshape((16,7))
-#  trainNetwork()
+  print 'Test begin: [' + str(c) + ']'
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num)
 #        if trainCorrect*100./trainCtr > good_record:
 #          good_record = trainCorrect*100./trainCtr
 #          file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
@@ -295,7 +369,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
 
 if __name__ == '__main__':
 #  loadData('img_label',4,2,480)
-#  trainNetwork()
-  test_mlp(1,512,0.01,5,100,0,0,0,480,3,4,2)
+# batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
+  test_mlp(1,512,0.0001,5,100,0,0,0,480,3,4,2)
 #  trail_test(1,512,0.001,3)
   pass
