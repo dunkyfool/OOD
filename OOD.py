@@ -207,12 +207,13 @@ def loadData(filename,grid_num,class_num,img_size):
 ##########################
 # Train & Valid function #
 ##########################
-def printScore(output,answer):
+def printScore(output,answer,img_size,grid_size,class_num):
   output = output[0]
+  gird_sq = grid_size**2
 #  print 'output '+str(output.shape)
 #  print 'answer '+str(answer.shape)
-  pre_score=output[0,4::7].reshape((4,4))
-  cor_score=answer[0,4::7].reshape((4,4))
+  pre_score=output[0,4::5+class_num].reshape((grid_size,grid_size))
+  cor_score=answer[0,4::5+class_num].reshape((grid_size,grid_size))
   print "########### Object Score###########"
   print "Predict"
   print tabulate(pre_score,tablefmt='grid')
@@ -220,28 +221,28 @@ def printScore(output,answer):
   print tabulate(cor_score,tablefmt='grid')
   print "###################################"
 
-  pre_x=output[0,0::7].reshape((4,4))
-  cor_x=answer[0,0::7].reshape((4,4))
-  pre_y=output[0,1::7].reshape((4,4))
-  cor_y=answer[0,1::7].reshape((4,4))
-  pre_w=output[0,2::7].reshape((4,4))
-  cor_w=answer[0,2::7].reshape((4,4))
-  pre_h=output[0,3::7].reshape((4,4))
-  cor_h=answer[0,3::7].reshape((4,4))
+  pre_x=output[0,0::5+class_num].reshape((grid_size,grid_size))
+  cor_x=answer[0,0::5+class_num].reshape((grid_size,grid_size))
+  pre_y=output[0,1::5+class_num].reshape((grid_size,grid_size))
+  cor_y=answer[0,1::5+class_num].reshape((grid_size,grid_size))
+  pre_w=output[0,2::5+class_num].reshape((grid_size,grid_size))
+  cor_w=answer[0,2::5+class_num].reshape((grid_size,grid_size))
+  pre_h=output[0,3::5+class_num].reshape((grid_size,grid_size))
+  cor_h=answer[0,3::5+class_num].reshape((grid_size,grid_size))
 
   pre_gridClass=[]
   cor_gridClass=[]
-  for i in range(4*4):
-    pre_gridClass+=[output[0,5+7*i:5+7*i+2]]
-    cor_gridClass+=[answer[0,5+7*i:5+7*i+2]]
-  pre_gridClass = np.asarray(pre_gridClass).reshape((4,4,2))
-  cor_gridClass = np.asarray(cor_gridClass).reshape((4,4,2))
+  for i in range(gird_sq):
+    pre_gridClass+=[output[0,5+(5+class_num)*i:5+(5+class_num)*i+class_num]]
+    cor_gridClass+=[answer[0,5+(5+class_num)*i:5+(5+class_num)*i+class_num]]
+  pre_gridClass = np.asarray(pre_gridClass).reshape((grid_size,grid_size,class_num))
+  cor_gridClass = np.asarray(cor_gridClass).reshape((grid_size,grid_size,class_num))
 
   pre_list=[]
   cor_list=[]
   print "############## BBox ###############"
-  for i in range(4):
-    for j in range(4):
+  for i in range(grid_size):
+    for j in range(grid_size):
       if cor_score[i][j]==1:
         delta=0
         delta+=abs(cor_x[i][j]-pre_x[i][j])
@@ -259,8 +260,8 @@ def printScore(output,answer):
         cor_list+=[-1]
   print "###################################"
   print "############# Class ###############"
-  pre_list = np.asarray(pre_list).reshape((4,4))
-  cor_list = np.asarray(cor_list).reshape((4,4))
+  pre_list = np.asarray(pre_list).reshape((grid_size,grid_size))
+  cor_list = np.asarray(cor_list).reshape((grid_size,grid_size))
   print "Predict"
   print tabulate(pre_list,tablefmt="grid")
   print "Answer"
@@ -268,7 +269,7 @@ def printScore(output,answer):
   print "###################################"
   pass
 
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num):
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num):
   good_score = 0
   start_time = timeit.default_timer()
   for e in range(epoch_num):
@@ -283,24 +284,25 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num):
     if (e+1)%10==0:
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
-        printScore(output,trainLabels[x:x+1])
+        printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num)
 
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
-def show(answer,filename,img_size,grid_size):
+def show(answer,filename,img_size,grid_size,class_num):
 #  print img_size,grid_size
 #  print filename
-  answer = answer[0].reshape((16,7))
+  grid_sq = grid_size **2
+  answer = answer[0].reshape((grid_sq,5+class_num))
 #  print answer.shape
 #  raw_input()
   img = cv2.imread(os.path.join('data/',filename))
   img = cv2.resize(img, (img_size,img_size))
-  for i in range(4*4):
+  for i in range(grid_sq):
     print answer[i]
-    if answer[i,4]>0.5:
-      center_x = int((i%4+answer[i,0])*(img_size/grid_size))
-      center_y = int((i/4+answer[i,1])*(img_size/grid_size))
+    if answer[i,4]*answer[i,5]>0.1:
+      center_x = int((i%grid_size+answer[i,0])*(img_size/grid_size))
+      center_y = int((i/grid_size+answer[i,1])*(img_size/grid_size))
       real_w = int(answer[i,2]*(img_size))
       real_h = int(answer[i,3]*(img_size))
       start_x = int((2*center_x+real_w-1)/2)
@@ -317,8 +319,12 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   ##########################
   #       Load Data        #
   ##########################
-  img_size = 480
-  filenameList, trainData, trainLabels = loadData('img_label',4,2,img_size)
+  img_size = img_s
+  channel = chl_s
+  grid_size = grid_s
+  class_num = cls_n
+  filenameList, trainData, trainLabels = loadData('oracle_label',grid_size,
+  class_num,img_size)
 
 
 ##########################
@@ -327,10 +333,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
 
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
-  img_size = img_s
-  channel = chl_s
-  grid_size = grid_s
-  class_num = cls_n
   batch_size = bs
   epoch_num = ep
   neuron = nu
@@ -368,7 +370,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num)
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num)
   file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
   save_params(file_name,params=[dnn.L1.w.get_value(),
                                dnn.L1.b.get_value(),
@@ -379,15 +381,15 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
 
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
   #load image
-  img_size = 480
-  filenameList, trainData, trainLabels = loadData('img_label',4,2,img_size)
-
-  x = T.matrix('x')
-  y_hat = T.matrix('y_hat')
   img_size = img_s
   channel = chl_s
   grid_size = grid_s
   class_num = cls_n
+  filenameList, trainData, trainLabels = loadData('test_label',grid_size,
+  class_num,img_size)
+
+  x = T.matrix('x')
+  y_hat = T.matrix('y_hat')
   batch_size = bs
 #  epoch_num = ep
   neuron = nu
@@ -422,12 +424,12 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
   for i in range(trainData.shape[0]):
     y = g(trainData[i*batch_size:(i+1)*batch_size])
     print trainLabels[i*batch_size:(i+1)*batch_size].shape
-    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size)
-    show(y,filenameList[i],img_size,grid_size)
+    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size,class_num)
+    show(y,filenameList[i],img_size,grid_size,class_num)
     #raw_input()
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-#  test_mlp(1,512,0.0001,5,200,0,0,0,480,3,4,2)
+  test_mlp(1,512,0.0001,5,100,0,0,0,480,3,4,2)
   trail_test(1,512,0.0001,5,480,3,4,2)
   pass
