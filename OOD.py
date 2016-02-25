@@ -11,6 +11,7 @@
 #  Cost function (slow for loop)
 #  verify accurarcy
 #  image size in this code and dataBuilder must be the same
+#  test123
 import theano, theano.tensor as T
 import scipy.io as sio
 import numpy as np
