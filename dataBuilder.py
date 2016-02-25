@@ -3,9 +3,10 @@ import numpy as np
 import cv2
 from tabulate import tabulate
 
-filename = 'dog.jpg'
+filename = 'data/circle100_100.jpg'
+savefile = '8grid'
 img_size = 480  # image weight/height
-grid_num = 4    # grid cell number per side
+grid_num = 8    # grid cell number per side
 mx,my = 0,0	# drawing mouse location
 p_start=[]	# start point
 p_end=[]	# end point
@@ -84,8 +85,8 @@ def draw_grid(img,img_size,grid_num):
     cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(0,0,0),1)
     cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(0,0,0),1)
 
-def save2file(filename):
-  f = open('img_label','a')
+def save2file(filename,savefile):
+  f = open(savefile,'a')
   output = transform(p_start,p_end,img_size,grid_num)
 #  print len(output)
   for i in range(len(output)):
@@ -126,7 +127,7 @@ while(1):
 	#print tabulate(transform(p_start,p_end,img_size,grid_num),
         #       headers=['x','y','w','h','c'])
         print "Save to file..."
-        save2file(filename)
+        save2file(filename,savefile)
     elif cv2.waitKey(20) & 0xFF == ord('m'):
         mode = not mode
         print mode
