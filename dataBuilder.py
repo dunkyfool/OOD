@@ -3,10 +3,10 @@ import numpy as np
 import cv2
 from tabulate import tabulate
 
-filename = 'data/circle100_100.jpg'
+filename = 'data/dog.jpg'
 savefile = '8grid'
 img_size = 480  # image weight/height
-grid_num = 8    # grid cell number per side
+grid_num =     # grid cell number per side
 mx,my = 0,0	# drawing mouse location
 p_start=[]	# start point
 p_end=[]	# end point
@@ -43,6 +43,7 @@ def draw_bbox(event,x,y,flags,param):
 
 def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   #array(row,column) vs img(x,y)
+  grid_pixels = (img_size/grid_num)**2
   x=min(sx,ex)
   y=min(sy,ey)
   a = np.zeros((img_size,img_size))
@@ -54,7 +55,11 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   t=img_size/grid_num
   for i in range(grid_num):
     for j in range(grid_num):
-      c += [min(1.0,a[i*t:i*t+t,j*t:j*t+t].sum())]
+      if a[i*t:i*t+t,j*t:j*t+t].sum() > grid_pixels * 0.1:
+        #c += [min(1.0,a[i*t:i*t+t,j*t:j*t+t].sum())]
+        c += [1]
+      else:
+        c += [0]
 #    print c
 #    print ' '
   return c
