@@ -3,10 +3,10 @@ import numpy as np
 import cv2
 from tabulate import tabulate
 
-filename = 'data/dog.jpg'
-savefile = '8grid'
+filename = 'data/00.jpg'
+savefile = '4grid'
 img_size = 480  # image weight/height
-grid_num =     # grid cell number per side
+grid_num = 4    # grid cell number per side
 mx,my = 0,0	# drawing mouse location
 p_start=[]	# start point
 p_end=[]	# end point
@@ -48,6 +48,9 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   y=min(sy,ey)
   a = np.zeros((img_size,img_size))
   b = np.ones((h,w))
+
+  A = grid_pixels #Grid total pixels
+  B = b.sum() #BBox total pixels
   c = []
   a[y:y+h,x:x+w] += b
 #  print a
@@ -55,11 +58,14 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   t=img_size/grid_num
   for i in range(grid_num):
     for j in range(grid_num):
-      if a[i*t:i*t+t,j*t:j*t+t].sum() > grid_pixels * 0.1:
-        #c += [min(1.0,a[i*t:i*t+t,j*t:j*t+t].sum())]
-        c += [1]
-      else:
-        c += [0]
+      A_B = a[i*t:i*t+t,j*t:j*t+t].sum()
+      IOA = A_B/ float(A + B - A_B)
+      c += [IOA]
+#      if a[i*t:i*t+t,j*t:j*t+t].sum() > grid_pixels * 0.1:
+#        #c += [min(1.0,a[i*t:i*t+t,j*t:j*t+t].sum())]
+#        c += [1]
+#      else:
+#        c += [0]
 #    print c
 #    print ' '
   return c
@@ -87,8 +93,8 @@ def transform(p_start,p_end,img_size,grid_num):
 def draw_grid(img,img_size,grid_num):
   t=img_size/grid_num
   for i in range(grid_num):
-    cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(0,0,0),1)
-    cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(0,0,0),1)
+    cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(255,255,255),1)
+    cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(255,255,255),1)
 
 def save2file(filename,savefile):
   f = open(savefile,'a')
