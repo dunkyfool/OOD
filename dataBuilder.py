@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from tabulate import tabulate
 
-filename = 'data/00.jpg'
+filename = 'data/33.jpg'
 savefile = '4grid'
 img_size = 480  # image weight/height
 grid_num = 4    # grid cell number per side

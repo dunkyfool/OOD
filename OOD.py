@@ -59,14 +59,15 @@ def NLL(y,y_hat):
 def YOLO(y,y_hat,batch_size,grid_size,class_num):
   #slow for loop
   grid_sq = grid_size**2
+  lambda_xywh = 10.0
   y = y.reshape((batch_size,grid_sq,5+class_num))
   y_hat = y_hat.reshape((batch_size,grid_sq,5+class_num))
 
   score = (y[:,:,4]-y_hat[:,:,4])**2
-  cost = 0
+  cost = T.sum(score)
   for i in range(4):
     tmp = (y[:,:,i]-y_hat[:,:,i])**2
-    cost += T.sum(score*tmp)
+    cost += lambda_xywh * T.sum(tmp)
 
   for i in range(class_num):
     tmp = (y[:,:,5+i]-y_hat[:,:,5+i])**2
@@ -215,6 +216,7 @@ def loadData(filename,grid_num,class_num,img_size):
 def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
   output = output[0]
   gird_sq = grid_size**2
+  scoreCtr = 0
   logname='log'
   title = '\n********************* Epoch: '+str(epoch)+', Index: '+str(index)+' *********************\n'
   record(logname,3,title)
@@ -222,6 +224,9 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
 #  print 'answer '+str(answer.shape)
   pre_score=output[0,4::5+class_num].reshape((grid_size,grid_size))
   cor_score=answer[0,4::5+class_num].reshape((grid_size,grid_size))
+
+  if pre_score.argmax()==cor_score.argmax():
+    scoreCtr += 1
   record(logname,3, "########### Object Score###########")
   record(logname,3, "Predict")
   record(logname,3, tabulate(pre_score,tablefmt='grid'))
@@ -251,7 +256,7 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
   record(logname,3, "############## BBox ###############")
   for i in range(grid_size):
     for j in range(grid_size):
-      if cor_score[i][j]==1:
+      if cor_score[i][j]>0:
         delta=0
         delta+=abs(cor_x[i][j]-pre_x[i][j])
         delta+=abs(cor_y[i][j]-pre_y[i][j])
@@ -273,7 +278,7 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
                               round(pre_w[i][j],2),
                               round(pre_h[i][j],2),
                               round(delta,2)]))
-        pre_list+=[pre_gridClass[i,j,:].argmax()]
+        pre_list+=[pre_gridClass[i,j,0]]#.argmax()]
         cor_list+=[cor_gridClass[i,j,:].argmax()]
       else:
         pre_list+=[-1]
@@ -287,10 +292,12 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
   record(logname,3, "Answer")
   record(logname,3, tabulate(cor_list,tablefmt="grid"))
   record(logname,3, "###################################")
-  pass
 
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num):
-  good_score = 0
+  return scoreCtr,delta
+
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn):
+  good_scoreCtr = 0
+  good_accDelta = 99999
   start_time = timeit.default_timer()
   for e in range(epoch_num):
     for i in range(trainData.shape[0]/batch_size):
@@ -302,18 +309,33 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
 #       Validation       #
 ##########################
     if (e+1)%10==0:
+      scoreCtr = 0
+      accDelta = 0
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
-        printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num,e+1,x)
+        tmp, delta = printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num,e+1,x+1)
+        scoreCtr += tmp
+        accDelta += delta
+      if scoreCtr > good_scoreCtr and accDelta < good_accDelta:
+        print scoreCtr, good_scoreCtr, accDelta, good_accDelta
+        print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!"
+        save_params('para',params=[dnn.L1.w.get_value(),
+                                      dnn.L1.b.get_value(),
+                                      dnn.L2.w.get_value(),
+                                      dnn.L2.b.get_value(),
+                                      cnn.w.get_value(),
+                                      cnn.b.get_value()])
+
 
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
-def show(answer,filename,img_size,grid_size,class_num):
+def show(answer,filename,img_size,grid_size,class_num,real_answer):
 #  print img_size,grid_size
 #  print filename
   grid_sq = grid_size **2
   answer = answer[0].reshape((grid_sq,5+class_num))
+  real_answer = real_answer[0].reshape((grid_sq,5+class_num))
 #  print answer.shape
 #  raw_input()
   #img = cv2.imread(os.path.join('data/',filename))
@@ -321,7 +343,7 @@ def show(answer,filename,img_size,grid_size,class_num):
   img = cv2.resize(img, (img_size,img_size))
   for i in range(grid_sq):
     print answer[i]
-    if answer[i,4]*answer[i,5]>0.1:
+    if real_answer[i,4]>0.0:#*answer[i,5]>0.1:
       center_x = int((i%grid_size+answer[i,0])*(img_size/grid_size))
       center_y = int((i/grid_size+answer[i,1])*(img_size/grid_size))
       real_w = int(answer[i,2]*(img_size))
@@ -391,14 +413,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename):
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num)
-  file_name = str(bs)+'_'+str(nu)+'_'+str(lr)+'_'+str(fs)+'_para'
-  save_params(file_name,params=[dnn.L1.w.get_value(),
-                               dnn.L1.b.get_value(),
-                               dnn.L2.w.get_value(),
-                               dnn.L2.b.get_value(),
-                               cnn.w.get_value(),
-                               cnn.b.get_value()])
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn)
 
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   #load image
@@ -432,7 +447,7 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   g=theano.function(inputs=[x],outputs=[dnn.output])
 
   print 'Load w and b...'
-  save_file = open('1_512_0.0001_5_para')
+  save_file = open('para')
   dnn.L1.w.set_value(cPickle.load(save_file))
   dnn.L1.b.set_value(cPickle.load(save_file))
   dnn.L2.w.set_value(cPickle.load(save_file))
@@ -445,12 +460,12 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   for i in range(trainData.shape[0]):
     y = g(trainData[i*batch_size:(i+1)*batch_size])
     print trainLabels[i*batch_size:(i+1)*batch_size].shape
-    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size,class_num)
-    show(y,filenameList[i],img_size,grid_size,class_num)
+    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size,class_num,trainLabels[i*batch_size:(i+1)*batch_size])
+    show(y,filenameList[i],img_size,grid_size,class_num,trainLabels[i*batch_size:(i+1)*batch_size])
     #raw_input()
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'4grid-train')
-  trail_test(1,512,0.0001,5,100,3,4,2,'4grid-test')
+#  test_mlp(1,1024,0.0001,5,200,0,0,0,100,3,4,2,'4grid-train')
+  trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
