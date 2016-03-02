@@ -179,7 +179,8 @@ def loadData(filename,grid_num,class_num,img_size):
   filenameList = []
   #print label; print label.shape
   for i in range(label.shape[0]):
-    img = cv2.imread(os.path.join('data/',label[i][0]))
+    #img = cv2.imread(os.path.join('data/',label[i][0]))
+    img = cv2.imread(label[i][0])
     img = cv2.resize(img,(img_size,img_size))
     filenameList+=[label[i][0]]
     #cv2.imshow('img',img)
@@ -316,7 +317,7 @@ def show(answer,filename,img_size,grid_size,class_num):
   plt.imshow(img)
   plt.show()
 
-def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
+def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename):
   ##########################
   #       Load Data        #
   ##########################
@@ -324,7 +325,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
   channel = chl_s
   grid_size = grid_s
   class_num = cls_n
-  filenameList, trainData, trainLabels = loadData('oracle_label',grid_size,
+  filenameList, trainData, trainLabels = loadData(filename,grid_size,
   class_num,img_size)
 
 
@@ -380,13 +381,13 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n):
                                cnn.w.get_value(),
                                cnn.b.get_value()])
 
-def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
+def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   #load image
   img_size = img_s
   channel = chl_s
   grid_size = grid_s
   class_num = cls_n
-  filenameList, trainData, trainLabels = loadData('test_label',grid_size,
+  filenameList, trainData, trainLabels = loadData(filename,grid_size,
   class_num,img_size)
 
   x = T.matrix('x')
@@ -431,6 +432,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,100,0,0,0,480,3,4,2)
-  trail_test(1,512,0.0001,5,480,3,4,2)
+  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'4grid')
+  trail_test(1,512,0.0001,5,100,3,4,2,'4grid')
   pass
