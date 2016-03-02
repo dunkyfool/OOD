@@ -46,6 +46,8 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   grid_pixels = (img_size/grid_num)**2
   x=min(sx,ex)
   y=min(sy,ey)
+  xx=max(sx,ex)
+  yy=max(sy,ey)
   a = np.zeros((img_size,img_size))
   b = np.ones((h,w))
 
@@ -58,9 +60,15 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
   t=img_size/grid_num
   for i in range(grid_num):
     for j in range(grid_num):
+      x_in = True if x+xx >= 2*(i*t) and x+xx <= 2*(i*t+t) else False
+      y_in = True if y+yy >= 2*(j*t) and y+yy <= 2*(j*t+t) else False
       A_B = a[i*t:i*t+t,j*t:j*t+t].sum()
-      IOA = A_B/ float(A + B - A_B)
-      c += [IOA]
+      if A==B and x_in and y_in: #if BBox within the grid cell
+        IOU = A_B/ float(A)
+        c += [IOU]
+      else:
+        IOU = A_B/ float(A + B - A_B)
+        c += [IOU]
 #      if a[i*t:i*t+t,j*t:j*t+t].sum() > grid_pixels * 0.1:
 #        #c += [min(1.0,a[i*t:i*t+t,j*t:j*t+t].sum())]
 #        c += [1]
