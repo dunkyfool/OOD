@@ -85,6 +85,9 @@ def record(filename,option,params):
   elif option == 2: #Add L1,L2
     f.write("%.2f %.2f %d %d %d %.7f %d %.10f %.10f\n" %(params[1],params[8],
      params[0],params[2],params[3],params[4],params[5],params[6],params[7]))
+  elif option == 3: #log YOLO
+    f.write(params)
+    f.write("\n")
   f.close()
 
 ##########################
@@ -209,19 +212,22 @@ def loadData(filename,grid_num,class_num,img_size):
 ##########################
 # Train & Valid function #
 ##########################
-def printScore(output,answer,img_size,grid_size,class_num):
+def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
   output = output[0]
   gird_sq = grid_size**2
+  logname='log'
+  title = '\n********************* Epoch: '+str(epoch)+', Index: '+str(index)+' *********************\n'
+  record(logname,3,title)
 #  print 'output '+str(output.shape)
 #  print 'answer '+str(answer.shape)
   pre_score=output[0,4::5+class_num].reshape((grid_size,grid_size))
   cor_score=answer[0,4::5+class_num].reshape((grid_size,grid_size))
-  print "########### Object Score###########"
-  print "Predict"
-  print tabulate(pre_score,tablefmt='grid')
-  print "Answer"
-  print tabulate(cor_score,tablefmt='grid')
-  print "###################################"
+  record(logname,3, "########### Object Score###########")
+  record(logname,3, "Predict")
+  record(logname,3, tabulate(pre_score,tablefmt='grid'))
+  record(logname,3, "Answer")
+  record(logname,3, tabulate(cor_score,tablefmt='grid'))
+  record(logname,3, "###################################")
 
   pre_x=output[0,0::5+class_num].reshape((grid_size,grid_size))
   cor_x=answer[0,0::5+class_num].reshape((grid_size,grid_size))
@@ -242,7 +248,7 @@ def printScore(output,answer,img_size,grid_size,class_num):
 
   pre_list=[]
   cor_list=[]
-  print "############## BBox ###############"
+  record(logname,3, "############## BBox ###############")
   for i in range(grid_size):
     for j in range(grid_size):
       if cor_score[i][j]==1:
@@ -251,24 +257,36 @@ def printScore(output,answer,img_size,grid_size,class_num):
         delta+=abs(cor_y[i][j]-pre_y[i][j])
         delta+=abs(cor_w[i][j]-pre_w[i][j])
         delta+=abs(cor_h[i][j]-pre_h[i][j])
-        print("BBox center:\t(%.2f,%.2f,%.2f,%.2f)" %(cor_x[i][j],cor_y[i][j],
-                                                    cor_w[i][j],cor_h[i][j]))
-        print("Grid(%d,%d):\t(%.2f,%.2f,%.2f,%.2f), delta: %.2f" %(i,j,pre_x[i][j],pre_y[i][j],
-                                                                pre_w[i][j],pre_h[i][j],delta))
+#        print("BBox center:\t(%.2f,%.2f,%.2f,%.2f)" %(cor_x[i][j],cor_y[i][j],
+#                                                    cor_w[i][j],cor_h[i][j]))
+#        print("Grid(%d,%d):\t(%.2f,%.2f,%.2f,%.2f), delta: %.2f" %(i,j,pre_x[i][j],pre_y[i][j],
+#                                                                pre_w[i][j],pre_h[i][j],delta))
+        record(logname,3,"BBox Center:")
+        record(logname,3,str([round(cor_x[i][j],2),
+                              round(cor_y[i][j],2),
+                              round(cor_w[i][j],2),
+                              round(cor_h[i][j],2)]))
+        grid_xy = 'Grid('+str(i)+','+str(j)+'): '
+        record(logname,3,grid_xy)
+        record(logname,3,str([round(pre_x[i][j],2),
+                              round(pre_y[i][j],2),
+                              round(pre_w[i][j],2),
+                              round(pre_h[i][j],2),
+                              round(delta,2)]))
         pre_list+=[pre_gridClass[i,j,:].argmax()]
         cor_list+=[cor_gridClass[i,j,:].argmax()]
       else:
         pre_list+=[-1]
         cor_list+=[-1]
-  print "###################################"
-  print "############# Class ###############"
+  record(logname,3, "###################################")
+  record(logname,3, "############# Class ###############")
   pre_list = np.asarray(pre_list).reshape((grid_size,grid_size))
   cor_list = np.asarray(cor_list).reshape((grid_size,grid_size))
-  print "Predict"
-  print tabulate(pre_list,tablefmt="grid")
-  print "Answer"
-  print tabulate(cor_list,tablefmt="grid")
-  print "###################################"
+  record(logname,3, "Predict")
+  record(logname,3, tabulate(pre_list,tablefmt="grid"))
+  record(logname,3, "Answer")
+  record(logname,3, tabulate(cor_list,tablefmt="grid"))
+  record(logname,3, "###################################")
   pass
 
 def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num):
@@ -286,7 +304,7 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
     if (e+1)%10==0:
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
-        printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num)
+        printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num,e+1,x)
 
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
@@ -298,7 +316,8 @@ def show(answer,filename,img_size,grid_size,class_num):
   answer = answer[0].reshape((grid_sq,5+class_num))
 #  print answer.shape
 #  raw_input()
-  img = cv2.imread(os.path.join('data/',filename))
+  #img = cv2.imread(os.path.join('data/',filename))
+  img = cv2.imread(filename)
   img = cv2.resize(img, (img_size,img_size))
   for i in range(grid_sq):
     print answer[i]
@@ -312,7 +331,7 @@ def show(answer,filename,img_size,grid_size,class_num):
       end_x = int((2*center_x-real_w+1)/2)
       end_y = int((2*center_y-real_h+1)/2)
       print start_x,start_y,end_x,end_y
-      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),3)
+      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),1)
 #      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
   plt.imshow(img)
   plt.show()
@@ -432,6 +451,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'4grid')
-  trail_test(1,512,0.0001,5,100,3,4,2,'4grid')
+  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'img_label')
+  trail_test(1,512,0.0001,5,100,3,4,2,'img_label')
   pass
