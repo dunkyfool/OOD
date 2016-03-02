@@ -451,6 +451,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'img_label')
-  trail_test(1,512,0.0001,5,100,3,4,2,'img_label')
+  test_mlp(1,512,0.0001,5,100,0,0,0,100,3,4,2,'4grid-train')
+  trail_test(1,512,0.0001,5,100,3,4,2,'4grid-test')
   pass
