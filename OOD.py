@@ -295,9 +295,9 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
 
   return scoreCtr,delta
 
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn):
-  good_scoreCtr = 0
-  good_accDelta = 99999
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,good_scoreCtr,good_accDelta):
+  good_scoreCtr = good_scoreCtr
+  good_accDelta = good_accDelta
   start_time = timeit.default_timer()
   for e in range(epoch_num):
     for i in range(trainData.shape[0]/batch_size):
@@ -316,9 +316,11 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
         tmp, delta = printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num,e+1,x+1)
         scoreCtr += tmp
         accDelta += delta
-      if scoreCtr > good_scoreCtr and accDelta < good_accDelta:
-        print scoreCtr, good_scoreCtr, accDelta, good_accDelta
-        print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!"
+      print scoreCtr, good_scoreCtr, accDelta, good_accDelta
+      if scoreCtr >= good_scoreCtr and accDelta < good_accDelta:
+        print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        good_scoreCtr = scoreCtr
+        good_accDelta = accDelta
         save_params('para',params=[dnn.L1.w.get_value(),
                                       dnn.L1.b.get_value(),
                                       dnn.L2.w.get_value(),
@@ -413,7 +415,9 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename):
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn)
+  good_scoreCtr = 0
+  good_accDelta = 99999
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,good_scoreCtr,good_accDelta)
 
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   #load image
@@ -466,6 +470,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-#  test_mlp(1,1024,0.0001,5,200,0,0,0,100,3,4,2,'4grid-train')
+#  test_mlp(1,1024,0.0001,5,500,0,0,0,100,3,4,2,'4grid-train')
   trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
