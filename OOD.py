@@ -59,19 +59,21 @@ def NLL(y,y_hat):
 def YOLO(y,y_hat,batch_size,grid_size,class_num):
   #slow for loop
   grid_sq = grid_size**2
-  lambda_xywh = 10.0
+  lambda_score = 10.0
+  lambda_xywh = 3.0
+  lambda_class = 0.0001
   y = y.reshape((batch_size,grid_sq,5+class_num))
   y_hat = y_hat.reshape((batch_size,grid_sq,5+class_num))
 
   score = (y[:,:,4]-y_hat[:,:,4])**2
-  cost = T.sum(score)
+  cost = lambda_score * T.sum(score)
   for i in range(4):
     tmp = (y[:,:,i]-y_hat[:,:,i])**2
     cost += lambda_xywh * T.sum(tmp)
 
   for i in range(class_num):
     tmp = (y[:,:,5+i]-y_hat[:,:,5+i])**2
-    cost += T.sum(score*tmp)
+    cost += lambda_class * T.sum(tmp)
 
   return cost
 
@@ -295,9 +297,9 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
 
   return scoreCtr,delta
 
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,good_scoreCtr,good_accDelta):
-  good_scoreCtr = good_scoreCtr
-  good_accDelta = good_accDelta
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,testData,testLabels):
+  good_scoreCtr = 0
+  good_accDelta = 99999
   start_time = timeit.default_timer()
   for e in range(epoch_num):
     for i in range(trainData.shape[0]/batch_size):
@@ -309,18 +311,26 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
 #       Validation       #
 ##########################
     if (e+1)%10==0:
-      scoreCtr = 0
-      accDelta = 0
+      trainScoreCtr = 0
+      trainAccDelta = 0
+      testScoreCtr = 0
+      testAccDelta = 0
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
         tmp, delta = printScore(output,trainLabels[x:x+1],img_size,grid_size,class_num,e+1,x+1)
-        scoreCtr += tmp
-        accDelta += delta
-      print scoreCtr, good_scoreCtr, accDelta, good_accDelta
-      if scoreCtr >= good_scoreCtr and accDelta < good_accDelta:
+        trainScoreCtr += tmp
+        trainAccDelta += delta
+      for x in range(testLabels.shape[0]):
+        output = v(testData[x:x+1])
+        tmp, delta = printScore(output,testLabels[x:x+1],img_size,grid_size,class_num,e+1,x+1)
+        testScoreCtr += tmp
+        testAccDelta += delta
+      print trainScoreCtr, good_scoreCtr, trainAccDelta, good_accDelta
+      print testScoreCtr, good_scoreCtr, testAccDelta, good_accDelta
+      if (trainScoreCtr+testScoreCtr) >= good_scoreCtr and (trainAccDelta+testAccDelta) < good_accDelta:
         print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-        good_scoreCtr = scoreCtr
-        good_accDelta = accDelta
+        good_scoreCtr = trainScoreCtr+3*testScoreCtr
+        good_accDelta = trainAccDelta+15*testAccDelta
         save_params('para',params=[dnn.L1.w.get_value(),
                                       dnn.L1.b.get_value(),
                                       dnn.L2.w.get_value(),
@@ -355,6 +365,17 @@ def show(answer,filename,img_size,grid_size,class_num,real_answer):
       end_x = int((2*center_x-real_w+1)/2)
       end_y = int((2*center_y-real_h+1)/2)
       print start_x,start_y,end_x,end_y
+      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(255,0,0),2)
+    if answer[i,4]>0.03:#*answer[i,5]>0.1:
+      center_x = int((i%grid_size+answer[i,0])*(img_size/grid_size))
+      center_y = int((i/grid_size+answer[i,1])*(img_size/grid_size))
+      real_w = int(answer[i,2]*(img_size))
+      real_h = int(answer[i,3]*(img_size))
+      start_x = int((2*center_x+real_w-1)/2)
+      start_y = int((2*center_y+real_h-1)/2)
+      end_x = int((2*center_x-real_w+1)/2)
+      end_y = int((2*center_y-real_h+1)/2)
+      print start_x,start_y,end_x,end_y
       cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),1)
 #      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
   plt.imshow(img)
@@ -365,10 +386,21 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename):
   #       Load Data        #
   ##########################
   img_size = img_s
+#      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
+  plt.imshow(img)
+  plt.show()
+
+def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
+  ##########################
+  #       Load Data        #
+  ##########################
+  img_size = img_s
   channel = chl_s
   grid_size = grid_s
   class_num = cls_n
   filenameList, trainData, trainLabels = loadData(filename,grid_size,
+  class_num,img_size)
+  test_filenameList, testData, testLabels = loadData(testfile,grid_size,
   class_num,img_size)
 
 
@@ -415,9 +447,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename):
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  good_scoreCtr = 0
-  good_accDelta = 99999
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,good_scoreCtr,good_accDelta)
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn,testData,testLabels)
 
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   #load image
@@ -470,6 +500,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-#  test_mlp(1,1024,0.0001,5,500,0,0,0,100,3,4,2,'4grid-train')
+#  test_mlp(1,1024,0.0001,5,500,0,0,0,100,3,4,2,'4grid-train','4grid-test')
   trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
