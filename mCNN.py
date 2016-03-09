@@ -29,7 +29,7 @@ import os
 #   Actvation Function   #
 ##########################
 def ReLU(x):
-  y = T.maximum(0.0,x)
+  y = T.maximum(0,x)
   return y
 
 def Sigmoid(x):
@@ -158,6 +158,7 @@ class CNN_Layer(object):
     self.b = b
     conv_out = conv.conv2d(input,self.w)
     output = T.nnet.sigmoid(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
+#    output = T.nnet.relu(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
     pool_out = downsample.max_pool_2d(output, poolsize, ignore_border=True)
     self.output = pool_out
     self.params = [self.w, self.b]
@@ -167,10 +168,11 @@ class CNN_Layer(object):
 ##########################
 class MLP(object):
   def __init__(self,input,y_hat,n_in,n_hidden,n_out,n_batch):
-    self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,Sigmoid)
-    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_out,n_batch,Sigmoid)
-    self.params = self.L1.params + self.L2.params
-    self.output = self.L2.output
+    self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,ReLU)
+    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_hidden,n_batch,ReLU)
+    self.L3 = HiddenLayer(self.L2.output,n_hidden,n_out,n_batch,ReLU)
+    self.params = self.L1.params + self.L2.params + self.L3.params
+    self.output = self.L3.output
 
 ##########################
 #      Load Data         #
@@ -537,6 +539,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,1024,0.0004,5,500,0,0,0,156,3,4,2,'4grid-train','4grid-test')
-  trail_test(1,1024,0.0004,5,156,3,4,2,'4grid-test')
+  test_mlp(1,1024,0.0000001,5,300,0,0,0,156,3,4,2,'4grid-train','4grid-test')
+  trail_test(1,1024,0.0000001,5,156,3,4,2,'4grid-test')
   pass
