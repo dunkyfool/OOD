@@ -329,8 +329,8 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
       print testScoreCtr, good_scoreCtr, testAccDelta, good_accDelta
       if (trainScoreCtr+testScoreCtr) >= good_scoreCtr and (trainAccDelta+testAccDelta) < good_accDelta:
         print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-        good_scoreCtr = trainScoreCtr+3*testScoreCtr
-        good_accDelta = trainAccDelta+15*testAccDelta
+        good_scoreCtr = trainScoreCtr+testScoreCtr
+        good_accDelta = trainAccDelta+10*testAccDelta
         save_params('para',params=[dnn.L1.w.get_value(),
                                       dnn.L1.b.get_value(),
                                       dnn.L2.w.get_value(),
@@ -423,25 +423,26 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
   lambda2 = l2
   weight_decay = wd
   output_total = (5+class_num)*grid_size**2
+  kernel=[channel,10,20,50]
 
-  cnn1_input = x.reshape((batch_size,3,img_size,img_size))
+  cnn1_input = x.reshape((batch_size,kernel[0],img_size,img_size))
   cnn1 = CNN_Layer(cnn1_input,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,img_size,img_size),
+                  filter_shape=(kernel[1],kernel[0],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[0],img_size,img_size),
                   poolsize=(2,2))
   tmp_size = (img_size - filter_size + 1)/2
   cnn2 = CNN_Layer(cnn1.output,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,tmp_size,tmp_size),
+                  filter_shape=(kernel[2],kernel[1],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[1],tmp_size,tmp_size),
                   poolsize=(2,2))
   tmp_size = (tmp_size - filter_size + 1)/2
   cnn3 = CNN_Layer(cnn2.output,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,tmp_size,tmp_size),
+                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
                   poolsize=(2,2))
 
   tmp_size = (tmp_size - filter_size + 1)/2
-  cnn_output_size = 3*tmp_size**2
+  cnn_output_size = kernel[3]*tmp_size**2
   dnn_input = cnn3.output.reshape((batch_size,cnn_output_size))
   dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
@@ -458,7 +459,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
   v=theano.function(inputs=[x],outputs=[dnn.output])
 
 #  t=theano.function(inputs=[x],
-#                    outputs=[cnn3.output])
+#                    outputs=[cnn1.output])
 #  ans = t(trainData[0:1])
 #  print ans[0].shape
 ##########################
@@ -486,25 +487,26 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   learning_rate = lr
   filter_size = fs
   output_total = (5+class_num)*grid_size**2
+  kernel[channel,10,20,50]
 
-  cnn1_input = x.reshape((batch_size,3,img_size,img_size))
+  cnn1_input = x.reshape((batch_size,kernel[0],img_size,img_size))
   cnn1 = CNN_Layer(cnn1_input,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,img_size,img_size),
+                  filter_shape=(kernel[1],kernel[0],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[0],img_size,img_size),
                   poolsize=(2,2))
   tmp_size = (img_size - filter_size + 1)/2
   cnn2 = CNN_Layer(cnn1.output,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,tmp_size,tmp_size),
+                  filter_shape=(kernel[2],kernel[1],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[1],tmp_size,tmp_size),
                   poolsize=(2,2))
   tmp_size = (tmp_size - filter_size + 1)/2
   cnn3 = CNN_Layer(cnn2.output,
-                  filter_shape=(3,3,filter_size,filter_size),
-                  image_shape=(batch_size,3,tmp_size,tmp_size),
+                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
+                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
                   poolsize=(2,2))
 
   tmp_size = (tmp_size - filter_size + 1)/2
-  cnn_output_size = 3*tmp_size**2
+  cnn_output_size = kernel[3]*tmp_size**2
   dnn_input = cnn3.output.reshape((batch_size,cnn_output_size))
   dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
@@ -535,6 +537,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-#  test_mlp(1,1024,0.001,5,500,0,0,0,156,3,4,2,'4grid-train','4grid-test')
-  trail_test(1,1024,0.001,5,156,3,4,2,'4grid-test')
+  test_mlp(1,1024,0.0004,5,500,0,0,0,156,3,4,2,'4grid-train','4grid-test')
+  trail_test(1,1024,0.0004,5,156,3,4,2,'4grid-test')
   pass
