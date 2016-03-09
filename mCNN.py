@@ -168,9 +168,9 @@ class CNN_Layer(object):
 ##########################
 class MLP(object):
   def __init__(self,input,y_hat,n_in,n_hidden,n_out,n_batch):
-    self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,ReLU)
-    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_hidden,n_batch,ReLU)
-    self.L3 = HiddenLayer(self.L2.output,n_hidden,n_out,n_batch,ReLU)
+    self.L1 = HiddenLayer(input,n_in,n_hidden,n_batch,Sigmoid)
+    self.L2 = HiddenLayer(self.L1.output,n_hidden,n_hidden,n_batch,Sigmoid)
+    self.L3 = HiddenLayer(self.L2.output,n_hidden,n_out,n_batch,Sigmoid)
     self.params = self.L1.params + self.L2.params + self.L3.params
     self.output = self.L3.output
 
@@ -437,20 +437,20 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
                   filter_shape=(kernel[2],kernel[1],filter_size,filter_size),
                   image_shape=(batch_size,kernel[1],tmp_size,tmp_size),
                   poolsize=(2,2))
-  tmp_size = (tmp_size - filter_size + 1)/2
-  cnn3 = CNN_Layer(cnn2.output,
-                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
-                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
-                  poolsize=(2,2))
+#  tmp_size = (tmp_size - filter_size + 1)/2
+#  cnn3 = CNN_Layer(cnn2.output,
+#                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
+#                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
+#                  poolsize=(2,2))
 
   tmp_size = (tmp_size - filter_size + 1)/2
-  cnn_output_size = kernel[3]*tmp_size**2
-  dnn_input = cnn3.output.reshape((batch_size,cnn_output_size))
+  cnn_output_size = kernel[2]*tmp_size**2
+  dnn_input = cnn2.output.reshape((batch_size,cnn_output_size))
   dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
-  params = cnn1.params + cnn2.params + cnn3.params + dnn.params
-  L1 = ( abs(cnn1.w).sum() + abs(cnn2.w).sum() + abs(cnn3.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
-  L2 = ( (cnn1.w**2).sum() + (cnn2.w**2).sum() + (cnn3.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
+  params = cnn1.params + cnn2.params + dnn.params #cnn3.params + dnn.params
+#  L1 = ( abs(cnn1.w).sum() + abs(cnn2.w).sum() + abs(cnn3.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
+#  L2 = ( (cnn1.w**2).sum() + (cnn2.w**2).sum() + (cnn3.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
   cost = YOLO(dnn.output,y_hat,batch_size,grid_size,class_num)
 #  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
 #  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
@@ -470,7 +470,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
 
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn1,cnn2,cnn3,testData,testLabels)
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,class_num,dnn,cnn1,cnn2,cnn2,testData,testLabels)
 
 def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   #load image
@@ -489,7 +489,7 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   learning_rate = lr
   filter_size = fs
   output_total = (5+class_num)*grid_size**2
-  kernel[channel,10,20,50]
+  kernel=[channel,10,20,50]
 
   cnn1_input = x.reshape((batch_size,kernel[0],img_size,img_size))
   cnn1 = CNN_Layer(cnn1_input,
@@ -539,6 +539,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-  test_mlp(1,1024,0.0000001,5,300,0,0,0,156,3,4,2,'4grid-train','4grid-test')
-  trail_test(1,1024,0.0000001,5,156,3,4,2,'4grid-test')
+  test_mlp(1,1024,0.0001,5,300,0,0,0,156,3,4,2,'4grid-train','4grid-test')
+#  trail_test(1,1024,0.0000001,5,156,3,4,2,'4grid-test')
   pass
