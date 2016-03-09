@@ -337,6 +337,8 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
                                       dnn.L1.b.get_value(),
                                       dnn.L2.w.get_value(),
                                       dnn.L2.b.get_value(),
+                                      dnn.L3.w.get_value(),
+                                      dnn.L3.b.get_value(),
                                       cnn1.w.get_value(),
                                       cnn1.b.get_value(),
                                       cnn2.w.get_value(),
@@ -521,6 +523,8 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   dnn.L1.b.set_value(cPickle.load(save_file))
   dnn.L2.w.set_value(cPickle.load(save_file))
   dnn.L2.b.set_value(cPickle.load(save_file))
+  dnn.L3.w.set_value(cPickle.load(save_file))
+  dnn.L3.b.set_value(cPickle.load(save_file))
   cnn1.w.set_value(cPickle.load(save_file))
   cnn1.b.set_value(cPickle.load(save_file))
   cnn2.w.set_value(cPickle.load(save_file))
@@ -539,6 +543,6 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
-#  test_mlp(1,1024,0.0001,5,300,0,0,0,156,3,4,2,'4grid-train','4grid-test')
+  test_mlp(1,1024,0.0001,5,200,0,0,0,156,3,4,2,'4grid-train','4grid-test')
   trail_test(1,1024,0.0001,5,156,3,4,2,'4grid-test')
   pass
