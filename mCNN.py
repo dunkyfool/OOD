@@ -340,9 +340,9 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
                                       cnn1.w.get_value(),
                                       cnn1.b.get_value(),
                                       cnn2.w.get_value(),
-                                      cnn2.b.get_value(),
-                                      cnn3.w.get_value(),
-                                      cnn3.b.get_value()])
+                                      cnn2.b.get_value()])
+#                                      cnn3.w.get_value(),
+#                                      cnn3.b.get_value()])
 
 
   end_time = timeit.default_timer()
@@ -501,18 +501,18 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
                   filter_shape=(kernel[2],kernel[1],filter_size,filter_size),
                   image_shape=(batch_size,kernel[1],tmp_size,tmp_size),
                   poolsize=(2,2))
-  tmp_size = (tmp_size - filter_size + 1)/2
-  cnn3 = CNN_Layer(cnn2.output,
-                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
-                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
-                  poolsize=(2,2))
+#  tmp_size = (tmp_size - filter_size + 1)/2
+#  cnn3 = CNN_Layer(cnn2.output,
+#                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
+#                  image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
+#                  poolsize=(2,2))
 
   tmp_size = (tmp_size - filter_size + 1)/2
-  cnn_output_size = kernel[3]*tmp_size**2
-  dnn_input = cnn3.output.reshape((batch_size,cnn_output_size))
+  cnn_output_size = kernel[2]*tmp_size**2
+  dnn_input = cnn2.output.reshape((batch_size,cnn_output_size))
   dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
-  params = cnn1.params + cnn2.params + cnn3.params + dnn.params
+  params = cnn1.params + cnn2.params + dnn.params# cnn3.params
   g=theano.function(inputs=[x],outputs=[dnn.output])
 
   print 'Load w and b...'
@@ -525,8 +525,8 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
   cnn1.b.set_value(cPickle.load(save_file))
   cnn2.w.set_value(cPickle.load(save_file))
   cnn2.b.set_value(cPickle.load(save_file))
-  cnn3.w.set_value(cPickle.load(save_file))
-  cnn3.b.set_value(cPickle.load(save_file))
+#  cnn3.w.set_value(cPickle.load(save_file))
+#  cnn3.b.set_value(cPickle.load(save_file))
   save_file.close()
 
   #Test and print
@@ -540,5 +540,5 @@ def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
 if __name__ == '__main__':
 # batch, neuron, lr, filter, l1,l2,wd, img,channel, grid, classNum
   test_mlp(1,1024,0.0001,5,300,0,0,0,156,3,4,2,'4grid-train','4grid-test')
-#  trail_test(1,1024,0.0000001,5,156,3,4,2,'4grid-test')
+  trail_test(1,1024,0.0001,5,156,3,4,2,'4grid-test')
   pass
