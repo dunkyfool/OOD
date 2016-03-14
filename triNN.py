@@ -247,7 +247,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 ##########################
 #       Variable         #
 ##########################
-
   x = T.matrix('x')
   y_hat = T.matrix('y_hat')
   batch_size = bs
@@ -274,6 +273,11 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 ##########################
 #    Training Model      #
 ##########################
+  last_params=[]
+  last_params+=[cnn.L1.w.get_value(),
+                cnn.L2.w.get_value(),
+                cnn.L3.w.get_value(),
+                cnn.L4.w.get_value()]
   for e in range(epoch_num):
     for i in range(trainData.shape[0]):
       ans,cost = g(trainData[i:i+1],trainLabels[i:i+1])
@@ -295,7 +299,17 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
         if tmp[0].argmax()==testLabels[k].argmax():
           testCtr+=1
       print("Train: %d; Test: %d\n"%(trainCtr,testCtr))
-      raw_input()
+      x=raw_input("Enter x to check the delta of W: ")
+      if x=='x':
+        print (cnn.L1.w.get_value()-last_params[-4])/(last_params[-4])*100
+        print (cnn.L2.w.get_value()-last_params[-3])/(last_params[-3])*100
+        print (cnn.L3.w.get_value()-last_params[-2])/(last_params[-2])*100
+        print (cnn.L4.w.get_value()-last_params[-1])/(last_params[-1])*100
+        raw_input()
+      last_params += [cnn.L1.w.get_value(),
+                      cnn.L2.w.get_value(),
+                      cnn.L3.w.get_value(),
+                      cnn.L4.w.get_value()]
 
 if __name__ == '__main__':
   #def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
