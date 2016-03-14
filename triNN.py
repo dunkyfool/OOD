@@ -227,6 +227,24 @@ class CNN_MLP(object):
     self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params
     self.output = self.L4.output.reshape((batch_size,self.output_size))
 
+def printOutput():
+'''
+  for in i layer
+    output=[]
+    output+=[train,test]
+    tmp = cnn_layer
+    tmp.w.set_value()
+    tmp.b.set_value()
+    f=theano.function([x],[tmp.output])
+    for
+      output+=f(output[old])
+    for
+      output+=f(output[old])
+    show image
+'''
+  pass
+
+
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
   ##########################
   #       Load Data        #
@@ -248,6 +266,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 #       Variable         #
 ##########################
   x = T.matrix('x')
+  x_printed = theano.printing.Print('this is a very important value')(x)
   y_hat = T.matrix('y_hat')
   batch_size = bs
   epoch_num = ep
@@ -269,15 +288,18 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
                     outputs=[cnn.output,cost],
                     updates=MyUpdate(params,gparams,learning_rate,weight_decay))
   v=theano.function(inputs=[x,y_hat],outputs=[cnn.output,cost])
-
 ##########################
 #    Training Model      #
 ##########################
   last_params=[]
   last_params+=[cnn.L1.w.get_value(),
+                cnn.L1.b.get_value(),
                 cnn.L2.w.get_value(),
+                cnn.L2.b.get_value(),
                 cnn.L3.w.get_value(),
-                cnn.L4.w.get_value()]
+                cnn.L3.b.get_value(),
+                cnn.L4.w.get_value(),
+                cnn.L4.b.get_value()]
   for e in range(epoch_num):
     for i in range(trainData.shape[0]):
       ans,cost = g(trainData[i:i+1],trainLabels[i:i+1])
@@ -301,15 +323,20 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
       print("Train: %d; Test: %d\n"%(trainCtr,testCtr))
       x=raw_input("Enter x to check the delta of W: ")
       if x=='x':
-        print (cnn.L1.w.get_value()-last_params[-4])/(last_params[-4])*100
-        print (cnn.L2.w.get_value()-last_params[-3])/(last_params[-3])*100
-        print (cnn.L3.w.get_value()-last_params[-2])/(last_params[-2])*100
-        print (cnn.L4.w.get_value()-last_params[-1])/(last_params[-1])*100
+        print (cnn.L1.w.get_value()-last_params[-8])/(last_params[-8])*100
+        print (cnn.L2.w.get_value()-last_params[-6])/(last_params[-6])*100
+        print (cnn.L3.w.get_value()-last_params[-4])/(last_params[-4])*100
+        print (cnn.L4.w.get_value()-last_params[-2])/(last_params[-2])*100
         raw_input()
+        printOutput()
       last_params += [cnn.L1.w.get_value(),
+                      cnn.L1.b.get_value(),
                       cnn.L2.w.get_value(),
+                      cnn.L2.b.get_value(),
                       cnn.L3.w.get_value(),
-                      cnn.L4.w.get_value()]
+                      cnn.L3.b.get_value(),
+                      cnn.L4.w.get_value(),
+                      cnn.L4.b.get_value()]
 
 if __name__ == '__main__':
   #def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
