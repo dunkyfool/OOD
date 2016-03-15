@@ -76,8 +76,16 @@ def YOLO(y,y_hat,batch_size,grid_size,class_num):
     cost += lambda_class * T.sum(tmp)
   return cost
 
-def OBJ(y,y_hat):
-  pass
+def OBJ(y,y_hat,trainLabels):
+  cost=0
+  for i in range(trainLabels.shape[0]):
+    for j in range(16):
+      if trainLabels[i][j]:
+        cost+=5*T.sum((y[j]-y_hat[j])**2)
+      else:
+        cost+=0.5*T.sum((y[j]-y_hat[j])**2)
+  return cost
+
 ##########################
 #    Record Function     #
 ##########################
@@ -183,49 +191,49 @@ class CNN_MLP(object):
   def __init__(self, input, filter_size, img_size, kernel, batch_size,poolFlag):
     self.input = input.reshape((batch_size,kernel[0],img_size,img_size))
     self.L1 = CNN_Layer(self.input,
-                  filter_shape=(kernel[1],kernel[0],filter_size,filter_size),
+                  filter_shape=(kernel[1],kernel[0],filter_size[0],filter_size[0]),
                   image_shape=(batch_size,kernel[0],img_size,img_size),
                   poolsize=(2,2),
                   poolFlag=poolFlag[0])
     if poolFlag[0]:
-      tmp_size = (img_size - filter_size + 1)/2
+      tmp_size = (img_size - filter_size[0] + 1)/2
     else:
-      tmp_size = (img_size - filter_size + 1)
+      tmp_size = (img_size - filter_size[0] + 1)
 
     self.L2 = CNN_Layer(self.L1.output,
-                  filter_shape=(kernel[2],kernel[1],filter_size,filter_size),
+                  filter_shape=(kernel[2],kernel[1],filter_size[1],filter_size[1]),
                   image_shape=(batch_size,kernel[1],tmp_size,tmp_size),
                   poolsize=(2,2),
                   poolFlag=poolFlag[1])
     if poolFlag[1]:
-      tmp_size = (tmp_size - filter_size + 1)/2
+      tmp_size = (tmp_size - filter_size[1] + 1)/2
     else:
-      tmp_size = (tmp_size - filter_size + 1)
+      tmp_size = (tmp_size - filter_size[1] + 1)
 
     self.L3 = CNN_Layer(self.L2.output,
-                  filter_shape=(kernel[3],kernel[2],filter_size,filter_size),
+                  filter_shape=(kernel[3],kernel[2],filter_size[1],filter_size[1]),
                   image_shape=(batch_size,kernel[2],tmp_size,tmp_size),
                   poolsize=(2,2),
                   poolFlag=poolFlag[2])
     if poolFlag[2]:
-      tmp_size = (tmp_size - filter_size + 1)/2
+      tmp_size = (tmp_size - filter_size[2] + 1)/2
     else:
-      tmp_size = (tmp_size - filter_size + 1)
+      tmp_size = (tmp_size - filter_size[2] + 1)
 
-    self.L4 = CNN_Layer(self.L3.output,
-                  filter_shape=(kernel[4],kernel[3],filter_size,filter_size),
-                  image_shape=(batch_size,kernel[3],tmp_size,tmp_size),
-                  poolsize=(2,2),
-                  poolFlag=poolFlag[3])
-    if poolFlag[3]:
-      tmp_size = (tmp_size - filter_size + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size + 1)
+#    self.L4 = CNN_Layer(self.L3.output,
+#                  filter_shape=(kernel[4],kernel[3],filter_size[1],filter_size[1]),
+#                  image_shape=(batch_size,kernel[3],tmp_size,tmp_size),
+#                  poolsize=(2,2),
+#                  poolFlag=poolFlag[3])
+#    if poolFlag[3]:
+#      tmp_size = (tmp_size - filter_size[3] + 1)/2
+#    else:
+#      tmp_size = (tmp_size - filter_size[3] + 1)
 
 
-    self.output_size = kernel[4]*tmp_size**2
-    self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params
-    self.output = self.L4.output.reshape((batch_size,self.output_size))
+    self.output_size = kernel[3]*tmp_size**2
+    self.params = self.L1.params + self.L2.params + self.L3.params# + self.L4.params
+    self.output = self.L3.output.reshape((batch_size,self.output_size))
 
 def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,batch_size,kernel,poolFlag,label):
   X = T.matrix('X')
@@ -235,14 +243,14 @@ def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,ba
   for i in range(layer_num):
     if i!=0:
       if poolFlag[i-1]:
-        tmp_size = (tmp_size - filter_size + 1)/2
+        tmp_size = (tmp_size - filter_size[i-1] + 1)/2
       else:
-        tmp_size = (tmp_size - filter_size + 1)
+        tmp_size = (tmp_size - filter_size[i-1] + 1)
 #    print batch_size,kernel[i],tmp_size
 #    raw_input()
     X = X.reshape((batch_size,kernel[i],tmp_size,tmp_size))
     tmp = CNN_Layer(X,
-                    filter_shape=(kernel[i+1],kernel[i],filter_size,filter_size),
+                    filter_shape=(kernel[i+1],kernel[i],filter_size[i],filter_size[i]),
                     image_shape=(batch_size,kernel[i],tmp_size,tmp_size),
                     poolsize=(2,2),
                     poolFlag=poolFlag[i])
@@ -254,21 +262,21 @@ def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,ba
         output+=[ f(trainData[j:j+1].reshape((1,1,tmp_size,tmp_size)))[0] ]
       for j in range(testData.shape[0]):
         output+=[ f(testData[j:j+1].reshape((1,1,tmp_size,tmp_size)))[0] ]
-      for k in range(len(output)):
-        print k
-        print output[k]
-        print output[k].shape
+#      for k in range(len(output)):
+#        print k
+#        print output[k]
+#        print output[k].shape
         #print output[k].argmax()
-        raw_input()
+#        raw_input()
     else:
       for j in range(total):
-        print j
-        print f(output[-total])[0]
-        print f(output[-total])[0].shape
         if i==layer_num-1:
+          print j
+          print f(output[-total])[0]
+          print f(output[-total])[0].shape
           print 'Predict: '+str(f(output[-total])[0].argmax())
           print 'Answer:  '+str(label[j].argmax())
-        raw_input()
+          raw_input()
         output+=[ f(output[-total])[0] ]
 
 
@@ -305,12 +313,13 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
   lambda2 = l2
   weight_decay = wd
   output_total = grid_size**2
-  kernel=[channel,1,1,1,1]
-  poolFlag=[False,False,False,False]
+  kernel=[channel,1,1,1]
+  poolFlag=[True,False,False]
 
   cnn = CNN_MLP(x,filter_size,img_size,kernel,batch_size,poolFlag)
   params = cnn.params
-  cost = ED(cnn.output,y_hat)
+#  cost = ED(cnn.output,y_hat)
+  cost = OBJ(cnn.output,y_hat,trainLabels)
   gparams = [ T.grad(cost,para) for para in params]
   g=theano.function(inputs=[x,y_hat],
                     outputs=[cnn.output,cost],
@@ -325,9 +334,9 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
                 cnn.L2.w.get_value(),
                 cnn.L2.b.get_value(),
                 cnn.L3.w.get_value(),
-                cnn.L3.b.get_value(),
-                cnn.L4.w.get_value(),
-                cnn.L4.b.get_value()]
+                cnn.L3.b.get_value()]
+#                cnn.L4.w.get_value(),
+#                cnn.L4.b.get_value()]
   for e in range(epoch_num):
     for i in range(trainData.shape[0]):
       ans,cost = g(trainData[i:i+1],trainLabels[i:i+1])
@@ -343,32 +352,33 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
       testCtr=0
       for k in range(testData.shape[0]):
         tmp,cost = v(testData[k:k+1],trainLabels[k:k+1])
-        print tmp[0]
-        print testLabels[k]
-        print cost
+#        print tmp[0]
+#        print testLabels[k]
+#        print cost
         if tmp[0].argmax()==testLabels[k].argmax():
           testCtr+=1
       print("Train: %d; Test: %d\n"%(trainCtr,testCtr))
       key=raw_input("Enter x to check the delta of W: ")
       if key=='x':
-        print "SHOW Delta_W"
-        print (cnn.L1.w.get_value()-last_params[-8])/(last_params[-8])*100
-        print (cnn.L2.w.get_value()-last_params[-6])/(last_params[-6])*100
-        print (cnn.L3.w.get_value()-last_params[-4])/(last_params[-4])*100
-        print (cnn.L4.w.get_value()-last_params[-2])/(last_params[-2])*100
-        print "SHOW Delta_W"
-        raw_input()
-        printOutput(last_params,trainData,testData,4,filter_size,img_size,batch_size,kernel,poolFlag,label)
+#        print "SHOW Delta_W"
+#        print (cnn.L1.w.get_value()-last_params[-8])/(last_params[-8])*100
+#        print (cnn.L2.w.get_value()-last_params[-6])/(last_params[-6])*100
+#        print (cnn.L3.w.get_value()-last_params[-4])/(last_params[-4])*100
+#        print (cnn.L4.w.get_value()-last_params[-2])/(last_params[-2])*100
+#        print "SHOW Delta_W"
+#        raw_input()
+        printOutput(last_params,trainData,testData,3,filter_size,img_size,batch_size,kernel,poolFlag,label)
       last_params += [cnn.L1.w.get_value(),
                       cnn.L1.b.get_value(),
                       cnn.L2.w.get_value(),
                       cnn.L2.b.get_value(),
                       cnn.L3.w.get_value(),
-                      cnn.L3.b.get_value(),
-                      cnn.L4.w.get_value(),
-                      cnn.L4.b.get_value()]
+                      cnn.L3.b.get_value()]
+#                      cnn.L4.w.get_value(),
+#                      cnn.L4.b.get_value()]
 
 if __name__ == '__main__':
   #def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
-  test_mlp(1,256,0.1,5,100000,0,0,0,20,1,4,0,'train','test')
+  # Variable
+  test_mlp(1,256,0.08,[5,3,3],100000,0,0,0,20,1,4,0,'train','test')
   pass
