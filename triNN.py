@@ -227,22 +227,50 @@ class CNN_MLP(object):
     self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params
     self.output = self.L4.output.reshape((batch_size,self.output_size))
 
-def printOutput():
-'''
-  for in i layer
-    output=[]
-    output+=[train,test]
-    tmp = cnn_layer
-    tmp.w.set_value()
-    tmp.b.set_value()
-    f=theano.function([x],[tmp.output])
-    for
-      output+=f(output[old])
-    for
-      output+=f(output[old])
-    show image
-'''
-  pass
+def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,batch_size,kernel,poolFlag,label):
+  X = T.matrix('X')
+  tmp_size = img_size
+  total = trainData.shape[0] + testData.shape[0]
+  output=[]
+  for i in range(layer_num):
+    if i!=0:
+      if poolFlag[i-1]:
+        tmp_size = (tmp_size - filter_size + 1)/2
+      else:
+        tmp_size = (tmp_size - filter_size + 1)
+#    print batch_size,kernel[i],tmp_size
+#    raw_input()
+    X = X.reshape((batch_size,kernel[i],tmp_size,tmp_size))
+    tmp = CNN_Layer(X,
+                    filter_shape=(kernel[i+1],kernel[i],filter_size,filter_size),
+                    image_shape=(batch_size,kernel[i],tmp_size,tmp_size),
+                    poolsize=(2,2),
+                    poolFlag=poolFlag[i])
+    f=theano.function(inputs=[X],outputs=[tmp.output])
+    tmp.w.set_value(last_params[(layer_num-i)*(-2)])
+    tmp.b.set_value(last_params[(layer_num-i)*(-2)+1])
+    if i==0:
+      for j in range(trainData.shape[0]):
+        output+=[ f(trainData[j:j+1].reshape((1,1,tmp_size,tmp_size)))[0] ]
+      for j in range(testData.shape[0]):
+        output+=[ f(testData[j:j+1].reshape((1,1,tmp_size,tmp_size)))[0] ]
+      for k in range(len(output)):
+        print k
+        print output[k]
+        print output[k].shape
+        #print output[k].argmax()
+        raw_input()
+    else:
+      for j in range(total):
+        print j
+        print f(output[-total])[0]
+        print f(output[-total])[0].shape
+        if i==layer_num-1:
+          print 'Predict: '+str(f(output[-total])[0].argmax())
+          print 'Answer:  '+str(label[j].argmax())
+        raw_input()
+        output+=[ f(output[-total])[0] ]
+
 
 
 def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
@@ -259,6 +287,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 #  print test.shape
   trainData, trainLabels= train[:,0:-16],train[:,-16:]
   testData, testLabels= test[:,0:-16],test[:,-16:]
+  label = np.concatenate([trainLabels,testLabels],axis=0)
 #  print trainData.shape, trainLabels.shape
 #  print testData.shape, testLabels.shape
 #  raw_input()
@@ -266,7 +295,6 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 #       Variable         #
 ##########################
   x = T.matrix('x')
-  x_printed = theano.printing.Print('this is a very important value')(x)
   y_hat = T.matrix('y_hat')
   batch_size = bs
   epoch_num = ep
@@ -321,14 +349,16 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
         if tmp[0].argmax()==testLabels[k].argmax():
           testCtr+=1
       print("Train: %d; Test: %d\n"%(trainCtr,testCtr))
-      x=raw_input("Enter x to check the delta of W: ")
-      if x=='x':
+      key=raw_input("Enter x to check the delta of W: ")
+      if key=='x':
+        print "SHOW Delta_W"
         print (cnn.L1.w.get_value()-last_params[-8])/(last_params[-8])*100
         print (cnn.L2.w.get_value()-last_params[-6])/(last_params[-6])*100
         print (cnn.L3.w.get_value()-last_params[-4])/(last_params[-4])*100
         print (cnn.L4.w.get_value()-last_params[-2])/(last_params[-2])*100
+        print "SHOW Delta_W"
         raw_input()
-        printOutput()
+        printOutput(last_params,trainData,testData,4,filter_size,img_size,batch_size,kernel,poolFlag,label)
       last_params += [cnn.L1.w.get_value(),
                       cnn.L1.b.get_value(),
                       cnn.L2.w.get_value(),
