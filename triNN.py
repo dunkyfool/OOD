@@ -76,15 +76,9 @@ def YOLO(y,y_hat,batch_size,grid_size,class_num):
     cost += lambda_class * T.sum(tmp)
   return cost
 
-def OBJ(y,y_hat,trainLabels):
-  cost=0
-  for i in range(trainLabels.shape[0]):
-    for j in range(16):
-      if trainLabels[i][j]:
-        cost+=5*T.sum((y[j]-y_hat[j])**2)
-      else:
-        cost+=0.5*T.sum((y[j]-y_hat[j])**2)
-  return cost
+def OBJ(y,y_hat):
+  z=T.sum(T.switch(T.eq(y_hat,1),5*(y-y_hat)**2,0.5*(y-y_hat)**2))
+  return z
 
 ##########################
 #    Record Function     #
@@ -319,7 +313,7 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
   cnn = CNN_MLP(x,filter_size,img_size,kernel,batch_size,poolFlag)
   params = cnn.params
 #  cost = ED(cnn.output,y_hat)
-  cost = OBJ(cnn.output,y_hat,trainLabels)
+  cost = OBJ(cnn.output,y_hat)
   gparams = [ T.grad(cost,para) for para in params]
   g=theano.function(inputs=[x,y_hat],
                     outputs=[cnn.output,cost],
@@ -380,5 +374,5 @@ def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile)
 if __name__ == '__main__':
   #def test_mlp(bs,nu,lr,fs,ep,l1,l2,wd,img_s,chl_s,grid_s,cls_n,filename,testfile):
   # Variable
-  test_mlp(1,256,0.08,[5,3,3],100000,0,0,0,20,1,4,0,'train','test')
+  test_mlp(1,256,0.09,[5,3,3],100000,0,0,0,20,1,4,0,'train','test')
   pass

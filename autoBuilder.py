@@ -25,7 +25,7 @@ def confidenceFinder(cx,cy,r,img_size,grid_num):
         c += [0]
   C = np.asarray(c).reshape((grid_num,grid_num))
 #  print x,y,cx,cy
-#  print C
+  print C
   print c
 #  print ' '
   return c
@@ -50,11 +50,11 @@ def save2file(filename,img_name,output):
 def createImage():
   filename='oracleTrain'
   img_size=160
-  grid_size=8
+  grid_size=10
   channel=3
   radius=16
   path='data/'
-  center=[radius+i*radius for i in range(img_size/radius-1)]
+  center=[radius+i*radius/2 for i in range((img_size/radius-1)*2-1)]
 
   for i in center:
     for j in center:
