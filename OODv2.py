@@ -194,10 +194,12 @@ class CNN_MLP(object):
                   poolsize=(2,2),
                   poolFlag=poolFlag[0],
                   border_mode=border_mode[0])
-    if poolFlag[0]:
-      tmp_size = (img_size - filter_size[0] + 1)/2
+    if border_mode[0]:
+      tmp_size = img_size + filter_size[0] - 1
     else:
-      tmp_size = (img_size - filter_size[0] + 1)
+      tmp_size = img_size - filter_size[0] + 1
+    if poolFlag[0]:
+      tmp_size /= 2
 
     self.L2 = CNN_Layer(self.L1.output,
                   filter_shape=(kernel[2],kernel[1],filter_size[1],filter_size[1]),
@@ -205,10 +207,12 @@ class CNN_MLP(object):
                   poolsize=(2,2),
                   poolFlag=poolFlag[1],
                   border_mode=border_mode[1])
-    if poolFlag[1]:
-      tmp_size = (tmp_size - filter_size[1] + 1)/2
+    if border_mode[1]:
+      tmp_size = tmp_size + filter_size[1] - 1
     else:
-      tmp_size = (tmp_size - filter_size[1] + 1)
+      tmp_size = tmp_size - filter_size[1] + 1
+    if poolFlag[1]:
+      tmp_size /= 2
 
     self.L3 = CNN_Layer(self.L2.output,
                   filter_shape=(kernel[3],kernel[2],filter_size[2],filter_size[2]),
@@ -216,10 +220,12 @@ class CNN_MLP(object):
                   poolsize=(2,2),
                   poolFlag=poolFlag[2],
                   border_mode=border_mode[2])
-    if poolFlag[2]:
-      tmp_size = (tmp_size - filter_size[2] + 1)/2
+    if border_mode[2]:
+      tmp_size = tmp_size + filter_size[2] - 1
     else:
-      tmp_size = (tmp_size - filter_size[2] + 1)
+      tmp_size = tmp_size - filter_size[2] + 1
+    if poolFlag[2]:
+      tmp_size /= 2
 
     self.L4 = CNN_Layer(self.L3.output,
                   filter_shape=(kernel[4],kernel[3],filter_size[3],filter_size[3]),
@@ -227,54 +233,64 @@ class CNN_MLP(object):
                   poolsize=(2,2),
                   poolFlag=poolFlag[3],
                   border_mode=border_mode[3])
+    if border_mode[3]:
+      tmp_size = tmp_size + filter_size[3] - 1
+    else:
+      tmp_size = tmp_size - filter_size[3] + 1
     if poolFlag[3]:
-      tmp_size = (tmp_size - filter_size[3] + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size[3] + 1)
+      tmp_size /= 2
 
-    self.L5 = CNN_Layer(self.L4.output,
-                  filter_shape=(kernel[5],kernel[4],filter_size[4],filter_size[4]),
-                  image_shape=(batch_size,kernel[4],tmp_size,tmp_size),
-                  poolsize=(2,2),
-                  poolFlag=poolFlag[4],
-                  border_mode=border_mode[4])
-    if poolFlag[4]:
-      tmp_size = (tmp_size - filter_size[4] + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size[4] + 1)
-
-    self.L6 = CNN_Layer(self.L5.output,
-                  filter_shape=(kernel[6],kernel[5],filter_size[5],filter_size[5]),
-                  image_shape=(batch_size,kernel[5],tmp_size,tmp_size),
-                  poolsize=(2,2),
-                  poolFlag=poolFlag[5],
-                  border_mode=border_mode[5])
-    if poolFlag[5]:
-      tmp_size = (tmp_size - filter_size[5] + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size[5] + 1)
-
-    self.L7 = CNN_Layer(self.L6.output,
-                  filter_shape=(kernel[7],kernel[6],filter_size[6],filter_size[6]),
-                  image_shape=(batch_size,kernel[6],tmp_size,tmp_size),
-                  poolsize=(2,2),
-                  poolFlag=poolFlag[6],
-                  border_mode=border_mode[6])
-    if poolFlag[6]:
-      tmp_size = (tmp_size - filter_size[6] + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size[6] + 1)
-
-    self.L8 = CNN_Layer(self.L7.output,
-                  filter_shape=(kernel[8],kernel[7],filter_size[7],filter_size[7]),
-                  image_shape=(batch_size,kernel[7],tmp_size,tmp_size),
-                  poolsize=(2,2),
-                  poolFlag=poolFlag[7],
-                  border_mode=border_mode[7])
-    if poolFlag[7]:
-      tmp_size = (tmp_size - filter_size[7] + 1)/2
-    else:
-      tmp_size = (tmp_size - filter_size[7] + 1)
+#    self.L5 = CNN_Layer(self.L4.output,
+#                  filter_shape=(kernel[5],kernel[4],filter_size[4],filter_size[4]),
+#                  image_shape=(batch_size,kernel[4],tmp_size,tmp_size),
+#                  poolsize=(2,2),
+#                  poolFlag=poolFlag[4],
+#                  border_mode=border_mode[4])
+#    if border_mode[4]:
+#      tmp_size = tmp_size + filter_size[4] - 1
+#    else:
+#      tmp_size = tmp_size - filter_size[4] + 1
+#    if poolFlag[4]:
+#      tmp_size /= 2
+#
+#    self.L6 = CNN_Layer(self.L5.output,
+#                  filter_shape=(kernel[6],kernel[5],filter_size[5],filter_size[5]),
+#                  image_shape=(batch_size,kernel[5],tmp_size,tmp_size),
+#                  poolsize=(2,2),
+#                  poolFlag=poolFlag[5],
+#                  border_mode=border_mode[5])
+#    if border_mode[5]:
+#      tmp_size = tmp_size + filter_size[5] - 1
+#    else:
+#      tmp_size = tmp_size - filter_size[5] + 1
+#    if poolFlag[5]:
+#      tmp_size /= 2
+#
+#    self.L7 = CNN_Layer(self.L6.output,
+#                  filter_shape=(kernel[7],kernel[6],filter_size[6],filter_size[6]),
+#                  image_shape=(batch_size,kernel[6],tmp_size,tmp_size),
+#                  poolsize=(2,2),
+#                  poolFlag=poolFlag[6],
+#                  border_mode=border_mode[6])
+#    if border_mode[6]:
+#      tmp_size = tmp_size + filter_size[6] - 1
+#    else:
+#      tmp_size = tmp_size - filter_size[6] + 1
+#    if poolFlag[6]:
+#      tmp_size /= 2
+#
+#    self.L8 = CNN_Layer(self.L7.output,
+#                  filter_shape=(kernel[8],kernel[7],filter_size[7],filter_size[7]),
+#                  image_shape=(batch_size,kernel[7],tmp_size,tmp_size),
+#                  poolsize=(2,2),
+#                  poolFlag=poolFlag[7],
+#                  border_mode=border_mode[7])
+#    if border_mode[7]:
+#      tmp_size = tmp_size + filter_size[7] - 1
+#    else:
+#      tmp_size = tmp_size - filter_size[7] + 1
+#    if poolFlag[7]:
+#      tmp_size /= 2
 
 #    self.L4 = CNN_Layer(self.L3.output,
 #                  filter_shape=(kernel[4],kernel[3],filter_size[1],filter_size[1]),
@@ -282,14 +298,18 @@ class CNN_MLP(object):
 #                  poolsize=(2,2),
 #                  poolFlag=poolFlag[3],
 #                  border_mode=border_mode[3])
-#    if poolFlag[3]:
-#      tmp_size = (tmp_size - filter_size[3] + 1)/2
+#    if border_mode[3]:
+#      tmp_size = tmp_size + filter_size[3] - 1
 #    else:
-#      tmp_size = (tmp_size - filter_size[3] + 1)
+#      tmp_size = tmp_size - filter_size[3] + 1
+#    if poolFlag[3]:
+#      tmp_size /= 2
 
-    self.output_size = kernel[8]*tmp_size**2
-    self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params + self.L5.params + self.L6.params + self.L7.params + self.L8.params
-    self.output = self.L8.output.reshape((batch_size,self.output_size))
+    self.output_size = kernel[4]*tmp_size**2
+#    print self.output_size,kernel[6],tmp_size
+#    raw_input('STOP')
+    self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params# + self.L5.params + self.L6.params #+ self.L7.params + self.L8.params
+    self.output = self.L4.output.reshape((batch_size,self.output_size))
 
 def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,batch_size,kernel,poolFlag,border_mode,label):
   X = T.matrix('X')
@@ -472,16 +492,22 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
         output = v(trainData[x:x+1])
         predict = (output[0]>0.5)
         answer = (trainLabels[x:x+1]==1)
+#        print trainLabels[x:x+1].shape
+#        print predict.shape
+#        print answer.shape
+#        raw_input()
+        #print predict.sum(),answer.sum()
         if (predict==answer).all():
           trainScoreCtr += 1
-      for x in range(testLabels.shape[0]):
-        output = v(testData[x:x+1])
-        predict = (output[0]>0.5)
-        answer = (trainLabels[x:x+1]==1)
-        if (predict==answer).all():
-          testScoreCtr += 1
-    print("Train Accurarcy: %.3f%%, Test Accurarcy: %.3f%%" %(trainScoreCtr*100./trainLabels.shape[0],
-                                                              testScoreCtr*100./testLabels.shape[0]))
+#      for x in range(testLabels.shape[0]):
+#        output = v(testData[x:x+1])
+#        predict = (output[0]>0.5)
+#        answer = (trainLabels[x:x+1]==1)
+#        print predict.sum(),answer.sum()
+#        if (predict==answer).all():
+#          testScoreCtr += 1
+      print("Train Accurarcy: %.3f%%" %(trainScoreCtr*100./trainLabels.shape[0]))
+#                                                              testScoreCtr*100./testLabels.shape[0]))
 #      print trainScoreCtr, good_scoreCtr, trainAccDelta, good_accDelta
 #      print testScoreCtr, good_scoreCtr, testAccDelta, good_accDelta
 #      if (trainScoreCtr+testScoreCtr) >= good_scoreCtr and (trainAccDelta+testAccDelta) < good_accDelta:
@@ -582,7 +608,7 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
   params = cnn.params + dnn.params
   #L1 = ( abs(cnn.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
   #L2 = ( (cnn.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
-  cost = OBJ(dnn.output,y_hat)
+  cost = ED(dnn.output,y_hat)
 #  cost = YOLO(dnn.output,y_hat,batch_size,grid_size,class_num)
 #  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
 #  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
@@ -651,10 +677,11 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
 #
 if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
-  test_mlp(1,1024,0.0001,[5,3,3,3,3,3,3,3],#filter_size
-          [3,16,32,64,64,128,128,256,256],#kernel
-          [True,True,False,True,False,True,False,False],#pool
-          [False,True,False,True,False,True,False,True],#border_mode
-          1000,0,0,0,160,10,'oracleTrain','oracleTrain')
+  test_mlp(1,512,0.01,[3,3,3,3],#filter_size
+  #        [3,16,32,64,64,128,128,256,256],#kernel
+           [3,3,3,3,1],
+          [False,True,False,False,False],#pool
+          [True,False,True,False],#border_mode
+          1000,0,0,0,20,10,'oracleTrain','oracleTrain')
 #  trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
