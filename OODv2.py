@@ -29,7 +29,7 @@ import os
 #   Actvation Function   #
 ##########################
 def ReLU(x):
-  y = T.maximum(0.0,x)
+  y = T.maximum(0.001*x,x)
   return y
 
 def Sigmoid(x):
@@ -164,7 +164,8 @@ class CNN_Layer(object):
       conv_out = conv.conv2d(input,self.w,border_mode='full')
     else:
       conv_out = conv.conv2d(input,self.w,border_mode='valid')
-    output = T.nnet.sigmoid(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
+#    output = T.nnet.sigmoid(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
+    output = ReLU(conv_out + b.dimshuffle('x', 0, 'x', 'x'))
     pool_out = downsample.max_pool_2d(output, poolsize, ignore_border=True)
     if poolFlag:
       self.output = pool_out
@@ -473,7 +474,7 @@ def printScore(output,answer,img_size,grid_size,class_num,epoch,index):
 
   return scoreCtr,delta
 
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels):
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList):
   good_scoreCtr = 0
   start_time = timeit.default_timer()
   for e in range(epoch_num):
@@ -499,6 +500,8 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
         #print predict.sum(),answer.sum()
         if (predict==answer).all():
           trainScoreCtr += 1
+        else:
+          print filenameList[x]
 #      for x in range(testLabels.shape[0]):
 #        output = v(testData[x:x+1])
 #        predict = (output[0]>0.5)
@@ -623,7 +626,7 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels)
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList)
 
 
 #def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
