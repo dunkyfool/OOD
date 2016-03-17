@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import izip
 import cv2
 import os
 
@@ -48,16 +49,19 @@ def save2file(filename,img_name,output):
 
 # Create images
 def createImage():
-  filename='oracleTrain'
+  filename='oracleTest'
   img_size=160
   grid_size=10
   channel=3
   radius=16
-  path='data/'
-  center=[radius+i*radius/2 for i in range((img_size/radius-1)*2-1)]
-
-  for i in center:
-    for j in center:
+  path='data/oracleTest/'
+#  center=[radius+i*radius/2 for i in range((img_size/radius-1)*2-1)]
+  x = np.random.randint(radius+1,img_size-radius-1,10)
+  y = np.random.randint(radius+1,img_size-radius-1,10)
+#  for i in center:
+#    for j in center:
+  for i in x:
+    for j in y:
       #print i,j
 # Find object confidence score
       output = confidenceFinder(i,j,radius,img_size,grid_size)
