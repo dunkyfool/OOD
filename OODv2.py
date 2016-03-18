@@ -95,6 +95,11 @@ def record(filename,option,params):
   elif option == 3: #log YOLO
     f.write(params)
     f.write("\n")
+  elif option == 4:
+    f.close()
+    f = open(filename,'w')
+    f.write(params)
+    f.write("\n")
   f.close()
 
 ##########################
@@ -392,8 +397,9 @@ def loadData(filename,grid_num,img_size):
 ##########################
 # Train & Valid function #
 ##########################
-def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList):
-  good_scoreCtr = 0
+def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList,filename):
+  good_TrainScore = 0
+  good_TestScore = 0
   start_time = timeit.default_timer()
   for e in range(epoch_num):
     for i in range(trainData.shape[0]/batch_size):
@@ -424,26 +430,37 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
       print "Testing Set Wrong Image:"
       for x in range(testLabels.shape[0]):
         output = v(testData[x:x+1])
-        predict = (output[0]>0.4)
+        predict = (output[0]>0.5)
         answer = (testLabels[x:x+1]==1)
         if (predict==answer).all():
           testScoreCtr += 1
         else:
           print test_filenameList[x]
-      print("Train Accurarcy: %.3f%%; Test Accurarcy: %.3f%%" %(trainScoreCtr*100./trainLabels.shape[0],
-                                                                testScoreCtr*100./testLabels.shape[0]))
+      currentTrainScore = trainScoreCtr*100./trainLabels.shape[0]
+      currentTestScore = testScoreCtr*100./testLabels.shape[0]
+      print("Train Accurarcy: %.3f%%; Test Accurarcy: %.3f%%" %(currentTrainScore,currentTestScore))
 #      print trainScoreCtr, good_scoreCtr, trainAccDelta, good_accDelta
 #      print testScoreCtr, good_scoreCtr, testAccDelta, good_accDelta
-#      if (trainScoreCtr+testScoreCtr) >= good_scoreCtr and (trainAccDelta+testAccDelta) < good_accDelta:
-#        print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!\n"
-#        good_scoreCtr = trainScoreCtr+3*testScoreCtr
-#        good_accDelta = trainAccDelta+15*testAccDelta
-#        save_params('para',params=[dnn.L1.w.get_value(),
-#                                      dnn.L1.b.get_value(),
-#                                      dnn.L2.w.get_value(),
-#                                      dnn.L2.b.get_value(),
-#                                      cnn.w.get_value(),
-#                                      cnn.b.get_value()])
+      if currentTrainScore >= good_TrainScore and currentTestScore >= good_TestScore:
+        print "SAVE PARAMETERS!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+        good_TrainScore = currentTrainScore
+        good_TestScore = currentTestScore
+        good_record = 'Train: '+str(good_TrainScore)+',Test: '+str(good_TestScore)
+        log = filename+'_good_record'
+        name = filename+'_para'
+        record(log,4,good_record)
+        save_params(name, params=[ dnn.L1.w.get_value(),
+                                   dnn.L1.b.get_value(),
+                                   dnn.L2.w.get_value(),
+                                   dnn.L2.b.get_value(),
+                                   cnn.L1.w.get_value(),
+                                   cnn.L1.b.get_value(),#])
+                                   cnn.L2.w.get_value(),
+                                   cnn.L2.b.get_value(),#])
+                                   cnn.L3.w.get_value(),
+                                   cnn.L3.b.get_value(),#])
+                                   cnn.L4.w.get_value(),
+                                   cnn.L4.b.get_value()])
 
 
   end_time = timeit.default_timer()
@@ -548,7 +565,7 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
 ##########################
   ans,c = g(trainData[0:1],trainLabels[0:1])
   print 'Test begin: [' + str(c) + ']'
-  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList)
+  trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList,filename)
 
 
 #def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
@@ -604,9 +621,9 @@ if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
   test_mlp(1,512,0.01,[3,3,3,3],#filter_size
   #        [3,16,32,64,64,128,128,256,256],#kernel
-           [3,3,3,3,1],
+           [3,3,3,3,3],
           [False,True,False,False,False],#pool
           [True,False,True,False],#border_mode
-          1000,0,0,0,20,10,'oracleTrain','oracleTest')
+          2000,0,0,0,20,10,'oracleTrain_org','oracleTest')
 #  trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
