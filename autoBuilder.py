@@ -55,11 +55,12 @@ def createImage():
   channel=3
   radius=16
   path='data/oracleTest/'
-#  center=[radius+i*radius/2 for i in range((img_size/radius-1)*2-1)]
-  x = np.random.randint(radius+1,img_size-radius-1,10)
-  y = np.random.randint(radius+1,img_size-radius-1,10)
-#  for i in center:
-#    for j in center:
+  center=[radius+i*radius/2 for i in range((img_size/radius-1)*2-1)]
+  f_center=[i+16 for i in range(33)] #finegrain
+  x = np.random.randint(radius,img_size-radius,20)
+  y = np.random.randint(radius,img_size-radius,20)
+#  for i in f_center:
+#    for j in f_center:
   for i in x:
     for j in y:
       #print i,j
@@ -71,7 +72,7 @@ def createImage():
 #      cv2.imshow('image',img)
 #      cv2.waitKey(0)
 #      cv2.destroyAllWindows()
-      img_name = path+str(i)+str(j)+'.jpg'
+      img_name = path+str(i)+'_'+str(j)+'.jpg'
       cv2.imwrite(img_name,img)
       save2file(filename,img_name,output)
 
