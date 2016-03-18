@@ -466,44 +466,6 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
-def show(answer,filename,img_size,grid_size,class_num,real_answer):
-#  print img_size,grid_size
-#  print filename
-  grid_sq = grid_size **2
-  answer = answer[0].reshape((grid_sq,5+class_num))
-  real_answer = real_answer[0].reshape((grid_sq,5+class_num))
-#  print answer.shape
-#  raw_input()
-  #img = cv2.imread(os.path.join('data/',filename))
-  img = cv2.imread(filename)
-  img = cv2.resize(img, (img_size,img_size))
-  for i in range(grid_sq):
-    print answer[i]
-    if real_answer[i,4]>0.0:#*answer[i,5]>0.1:
-      center_x = int((i%grid_size+answer[i,0])*(img_size/grid_size))
-      center_y = int((i/grid_size+answer[i,1])*(img_size/grid_size))
-      real_w = int(answer[i,2]*(img_size))
-      real_h = int(answer[i,3]*(img_size))
-      start_x = int((2*center_x+real_w-1)/2)
-      start_y = int((2*center_y+real_h-1)/2)
-      end_x = int((2*center_x-real_w+1)/2)
-      end_y = int((2*center_y-real_h+1)/2)
-      print start_x,start_y,end_x,end_y
-      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(255,0,0),2)
-    if answer[i,4]>0.03:#*answer[i,5]>0.1:
-      center_x = int((i%grid_size+answer[i,0])*(img_size/grid_size))
-      center_y = int((i/grid_size+answer[i,1])*(img_size/grid_size))
-      real_w = int(answer[i,2]*(img_size))
-      real_h = int(answer[i,3]*(img_size))
-      start_x = int((2*center_x+real_w-1)/2)
-      start_y = int((2*center_y+real_h-1)/2)
-      end_x = int((2*center_x-real_w+1)/2)
-      end_y = int((2*center_y-real_h+1)/2)
-      print start_x,start_y,end_x,end_y
-      cv2.rectangle(img,(start_x,start_y),(end_x,end_y),(0,255,0),1)
-#      cv2.circle(img,(center_y,center_x),min(real_w,real_h),(255,0,0),3)
-  plt.imshow(img)
-  plt.show()
 
 def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfile):
   ##########################
