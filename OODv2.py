@@ -489,6 +489,7 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
     if (e+1)%10==0:
       trainScoreCtr = 0
       testScoreCtr = 0
+      print "Training Set Wrong Image:"
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
         predict = (output[0]>0.5)
@@ -502,15 +503,17 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
           trainScoreCtr += 1
         else:
           print filenameList[x]
-#      for x in range(testLabels.shape[0]):
-#        output = v(testData[x:x+1])
-#        predict = (output[0]>0.5)
-#        answer = (trainLabels[x:x+1]==1)
-#        print predict.sum(),answer.sum()
-#        if (predict==answer).all():
-#          testScoreCtr += 1
-      print("Train Accurarcy: %.3f%%" %(trainScoreCtr*100./trainLabels.shape[0]))
-#                                                              testScoreCtr*100./testLabels.shape[0]))
+      print "Testing Set Wrong Image:"
+      for x in range(testLabels.shape[0]):
+        output = v(testData[x:x+1])
+        predict = (output[0]>0.4)
+        answer = (testLabels[x:x+1]==1)
+        if (predict==answer).all():
+          testScoreCtr += 1
+        else:
+          print test_filenameList[x]
+      print("Train Accurarcy: %.3f%%; Test Accurarcy: %.3f%%" %(trainScoreCtr*100./trainLabels.shape[0],
+                                                                testScoreCtr*100./testLabels.shape[0]))
 #      print trainScoreCtr, good_scoreCtr, trainAccDelta, good_accDelta
 #      print testScoreCtr, good_scoreCtr, testAccDelta, good_accDelta
 #      if (trainScoreCtr+testScoreCtr) >= good_scoreCtr and (trainAccDelta+testAccDelta) < good_accDelta:
@@ -612,6 +615,7 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
   #L1 = ( abs(cnn.w).sum() + abs(dnn.L1.w).sum() + abs(dnn.L2.w).sum() )
   #L2 = ( (cnn.w**2).sum() + (dnn.L1.w**2).sum() + (dnn.L2.w**2).sum() )
   cost = ED(dnn.output,y_hat)
+  #cost = OBJ(dnn.output,y_hat)
 #  cost = YOLO(dnn.output,y_hat,batch_size,grid_size,class_num)
 #  cost = ED(y_hat,dnn.output) + lambda1 * L1 + lambda2 * L2
 #  cost = NLL(dnn.output,y_hat) + lambda1 * L1 + lambda2 * L2
@@ -685,6 +689,6 @@ if __name__ == '__main__':
            [3,3,3,3,1],
           [False,True,False,False,False],#pool
           [True,False,True,False],#border_mode
-          1000,0,0,0,20,10,'oracleTrain','oracleTrain')
+          1000,0,0,0,20,10,'oracleTrain','oracleTest')
 #  trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
   pass
