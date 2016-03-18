@@ -467,6 +467,12 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
   print('Total time: %.2f' % ((end_time-start_time)/60.))
 
 
+def draw_grid(img,img_size,grid_num):
+  t=img_size/grid_num
+  for i in range(grid_num):
+    cv2.line(img,(t*(i+1),0),(t*(i+1),img_size-1),(255,255,255),1)
+    cv2.line(img,(0,t*(i+1)),(img_size-1,t*(i+1)),(255,255,255),1)
+
 def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfile):
   ##########################
   #       Load Data        #
@@ -586,15 +592,85 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
   cnn.L4.w.set_value(cPickle.load(save_file))
   cnn.L4.b.set_value(cPickle.load(save_file))
   save_file.close()
-#
-#  #Test and print
-#  for i in range(trainData.shape[0]):
-#    y = g(trainData[i*batch_size:(i+1)*batch_size])
-#    print trainLabels[i*batch_size:(i+1)*batch_size].shape
-#    show(trainLabels[i*batch_size:(i+1)*batch_size],filenameList[i],img_size,grid_size,class_num,trainLabels[i*batch_size:(i+1)*batch_size])
-#    show(y,filenameList[i],img_size,grid_size,class_num,trainLabels[i*batch_size:(i+1)*batch_size])
-#    #raw_input()
-#
+
+  ctr=0
+  table=np.zeros((10,10,4))
+  wrong_img=[]
+  for i in range(testData.shape[0]):
+    output = g(testData[i:i+1])
+    predict = (output[0]>0.5)
+    answer = (testLabels[i:i+1]==1)
+    _x,_y = test_filenameList[i][16:-4].split('_')
+    _x = int(_x)/(160/grid_size) #img_size is not the real size
+    _y = int(_y)/(160/grid_size)
+#    print test_filenameList[i]
+#    print _x,_y
+#    raw_input()
+#    print testLabels[i:i+1].shape
+#    print predict.shape
+#    print answer.shape
+#    raw_input()
+    #print predict.sum(),answer.sum()
+    if (predict==answer).all():
+      #print str(test_filenameList[i])+' Correct'
+      table[_y,_x,0]+=1
+      ctr+=1
+    else:
+      #print str(test_filenameList[i])+' Wrong'
+      table[_y,_x,1]+=1
+      wrong_img+=[i]
+  table[:,:,2]=table[:,:,0]*100/(table[:,:,0]+table[:,:,1])
+  table[:,:,3]=table[:,:,1]*100/(table[:,:,0]+table[:,:,1])
+  print("%.3f%%"%(ctr*100./testLabels.shape[0]))
+  print tabulate(table[:,:,3],tablefmt="grid")
+
+  # Each image Check
+  for i in wrong_img:
+    TF=0;FT=0
+    TF_buffer=[]
+    FT_buffer=[]
+    img = cv2.imread(test_filenameList[i])
+    np.set_printoptions(precision=2)
+    np.set_printoptions(suppress=True)
+    output = g(testData[i:i+1])[0]
+    predict = (output[0]>0.5)
+    answer = (testLabels[i:i+1]==1)
+    total_true = answer.sum()
+    total_false = (~predict==answer).sum()
+    _, wrong_index = np.where(~predict==answer)
+    for j in wrong_index:
+      if predict[j] and ~answer[0,j]:
+        FT+=1
+        FT_buffer+=[(j%grid_size,j/grid_size)]
+      elif ~predict[j] and answer[0,j]:
+        TF+=1
+        TF_buffer+=[(j%grid_size,j/grid_size)]
+#    print wrong_index
+#    print predict
+#    print answer
+#    print total_false
+#    raw_input()
+    print test_filenameList[i]
+    print 'Answer'
+    print testLabels[i].reshape((10,10))
+    print 'Predict'
+    print output.reshape((10,10))
+    print 'Total True: '+str(total_true)
+    print 'Total False: '+str(total_false )
+    print 'Fact True => Predict False: '+str(TF)+' '+str(TF_buffer)
+    print 'Fact False => Predict True: '+str(FT)+' '+str(FT_buffer)
+
+    img2 = cv2.resize(img,(img_size,img_size))
+    for i in TF_buffer:
+      print i
+      print img2[i[1]*2:(i[1]+1)*2,i[0]*2:(i[0]+1)*2,0]
+
+    img = cv2.resize(img,(160,160))
+    draw_grid(img,160,grid_size)
+    cv2.imshow('image',img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
 #  test_mlp(1,512,0.01,[3,3,3,3],#filter_size
