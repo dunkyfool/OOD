@@ -568,46 +568,62 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
   trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_size,dnn,cnn,testData,testLabels,filenameList,test_filenameList,filename)
 
 
-#def trail_test(bs,nu,lr,fs,img_s,chl_s,grid_s,cls_n,filename):
-#  #load image
-#  img_size = img_s
-#  channel = chl_s
-#  grid_size = grid_s
-#  class_num = cls_n
-#  filenameList, trainData, trainLabels = loadData(filename,grid_size,
-#  class_num,img_size)
-#
-#  x = T.matrix('x')
-#  y_hat = T.matrix('y_hat')
-#  batch_size = bs
-##  epoch_num = ep
-#  neuron = nu
-#  learning_rate = lr
-#  filter_size = fs
-#  output_total = (5+class_num)*grid_size**2
-#  cnn_output_size = channel*((img_size-filter_size+1)/2)**2
-#
-#  cnn_input = x.reshape((batch_size,3,img_size,img_size))
-#  cnn = CNN_Layer(cnn_input,
-#                  filter_shape=(3,3,filter_size,filter_size),
-#                  image_shape=(batch_size,3,img_size,img_size),
-#                  poolsize=(2,2))
-#
-#  dnn_input = cnn.output.reshape((batch_size,cnn_output_size))
-#  dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
-#
-#  params = cnn.params + dnn.params
-#  g=theano.function(inputs=[x],outputs=[dnn.output])
-#
-#  print 'Load w and b...'
-#  save_file = open('para')
-#  dnn.L1.w.set_value(cPickle.load(save_file))
-#  dnn.L1.b.set_value(cPickle.load(save_file))
-#  dnn.L2.w.set_value(cPickle.load(save_file))
-#  dnn.L2.b.set_value(cPickle.load(save_file))
-#  cnn.w.set_value(cPickle.load(save_file))
-#  cnn.b.set_value(cPickle.load(save_file))
-#  save_file.close()
+def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num):
+  ##########################
+  #       Load Data        #
+  ##########################
+  img_size = img_s
+  channel_size = kernel[0]
+  grid_size = grid_s
+  test_filenameList, testData, testLabels = loadData(testfile,grid_size,img_size)
+
+##########################
+#       Variable         #
+##########################
+
+  x = T.matrix('x')
+  y_hat = T.matrix('y_hat')
+  batch_size = bs
+  epoch_num = ep
+  neuron = nu
+  learning_rate = lr
+  filter_size = fs
+  lambda1 = l1
+  lambda2 = l2
+  weight_decay = wd
+  kernel=kernel
+  poolFlag=pool
+  border_mode=bm
+  output_total = grid_size**2
+  cnn_output_size = output_total*kernel[-1]
+
+  cnn = CNN_MLP(x,filter_size,img_size,kernel,batch_size,poolFlag,border_mode)
+
+  dnn_input = cnn.output.reshape((batch_size,cnn_output_size))
+  dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
+
+  params = cnn.params + dnn.params
+  cost = ED(dnn.output,y_hat)
+  #cost = OBJ(dnn.output,y_hat)
+  gparams = [ T.grad(cost,para) for para in params]
+  g=theano.function(inputs=[x],outputs=[dnn.output])
+
+  print 'Load w and b...'
+  path='para/oracleTrain_org/'+str(num)+'/oracleTrain_org_para'
+  save_file = open(path)
+  dnn.L1.w.set_value(cPickle.load(save_file))
+  dnn.L1.b.set_value(cPickle.load(save_file))
+  dnn.L2.w.set_value(cPickle.load(save_file))
+  dnn.L2.b.set_value(cPickle.load(save_file))
+  cnn.L1.w.set_value(cPickle.load(save_file))
+  cnn.L1.b.set_value(cPickle.load(save_file))
+  cnn.L2.w.set_value(cPickle.load(save_file))
+  cnn.L2.b.set_value(cPickle.load(save_file))
+  cnn.L3.w.set_value(cPickle.load(save_file))
+  cnn.L3.b.set_value(cPickle.load(save_file))
+  cnn.L4.w.set_value(cPickle.load(save_file))
+  cnn.L4.b.set_value(cPickle.load(save_file))
+  save_file.close()
 #
 #  #Test and print
 #  for i in range(trainData.shape[0]):
@@ -619,11 +635,14 @@ def test_mlp(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,filename,testfi
 #
 if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
-  test_mlp(1,512,0.01,[3,3,3,3],#filter_size
-  #        [3,16,32,64,64,128,128,256,256],#kernel
-           [3,3,3,3,3],
+#  test_mlp(1,512,0.01,[3,3,3,3],#filter_size
+#           [3,3,3,3,3],#kernel
+#          [False,True,False,False,False],#pool
+#          [True,False,True,False],#border_mode
+#          2000,0,0,0,20,10,'oracleTrain_org','oracleTest')
+  trail_test(1,512,0.01,[3,3,3,3],#filter_size
+           [3,3,3,3,3],#kernel_size
           [False,True,False,False,False],#pool
           [True,False,True,False],#border_mode
-          2000,0,0,0,20,10,'oracleTrain_org','oracleTest')
-#  trail_test(1,1024,0.0001,5,100,3,4,2,'4grid-test')
+          2000,0,0,0,20,10,'oracleTest',9741)
   pass
