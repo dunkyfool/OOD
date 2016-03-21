@@ -680,7 +680,7 @@ if __name__ == '__main__':
 #          2000,0,0,0,20,10,'oracleTrain_org','oracleTest')
   trail_test(1,512,0.01,[3,3,3,3],#filter_size
            [3,3,3,3,3],#kernel_size
-          [False,True,False,False,False],#pool
-          [True,False,True,False],#border_mode
+          [False,True,False,False,False],#pool True: pooling
+          [True,False,True,False],#border_mode True: Padding
           2000,0,0,0,20,10,'oracleTest',9741)
   pass
