@@ -25,7 +25,7 @@ if os.path.isfile(record):
     start_index=int(f.read())
 #print start_index, type(start_index)
 #start_index+=1
-title = 'Current index is '+str(start_index)+' Are you sure you want continue? (y/n):'
+title = 'Current index is '+str(start_index)+' Are you sure you want continue? ([y]/n):'
 x = raw_input(title)
 if x=='n':
   sys.exit()

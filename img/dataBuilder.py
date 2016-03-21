@@ -5,8 +5,8 @@ import os
 from tabulate import tabulate
 
 #filename = 'photo/frame54.jpg'
-pathname = 'photo'
-savefile = 'IR_train'
+pathname = 'IR_train'
+savefile = 'IR_train_label'
 img_size = 320  # image weight/height
 grid_num = 10   # grid cell number per side
 mx,my = 0,0	# drawing mouse location
@@ -76,19 +76,22 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
         c += [1]
       else:
         c += [0]
-    print c
-    print ' '
+  print c
+  print ' '
   return c
 
-#def transform(p_start,p_end,img_size,grid_num):
+def transform(p_start,p_end,img_size,grid_num):
 #  #w,h = w/float(img_size),h/float(img_szie)
-#  bbox = []
-#  for i in range(len(p_start)):
+  bbox = []
+  if len(p_start)==0:
+    c=np.zeros(100,dtype=np.uint8).tolist()
+    bbox+=[c]
+  for i in range(len(p_start)):
 #    x=(float(p_start[i][0])+float(p_end[i][0]))/2
 #    y=(float(p_start[i][1])+float(p_end[i][1]))/2
-#    w=abs(float(p_start[i][0])-float(p_end[i][0])) + 1
-#    h=abs(float(p_start[i][1])-float(p_end[i][1])) + 1
-#    c=confidenceFinder(p_start[i],p_end[i],w,h,img_size,grid_num)
+    w=abs(float(p_start[i][0])-float(p_end[i][0])) + 1
+    h=abs(float(p_start[i][1])-float(p_end[i][1])) + 1
+    c=confidenceFinder(p_start[i],p_end[i],w,h,img_size,grid_num)
 #
 #    x=x%float(img_size/grid_num)
 #    y=y%float(img_size/grid_num)
@@ -98,7 +101,8 @@ def confidenceFinder((sx,sy),(ex,ey),w,h,img_size,grid_num):
 #    x=x/float(img_size/grid_num)
 #    y=y/float(img_size/grid_num)
 #    bbox+=[(x,y,w,h,c)]
-#  return bbox
+    bbox+=[c]
+  return bbox
 
 def draw_grid(img,img_size,grid_num):
   t=img_size/grid_num
@@ -108,17 +112,17 @@ def draw_grid(img,img_size,grid_num):
 
 def save2file(filename,savefile):
   f = open(savefile,'a')
-#  output = transform(p_start,p_end,img_size,grid_num)
-#  print len(output)
-#  for i in range(len(output)):
+  output = transform(p_start,p_end,img_size,grid_num)
+#  print len(output), type(output);raw_input()
+  for i in range(len(output)):
 #    print output[i], type(output[i])
 #    print output[i][0:4]
-#    f.write("%s " %filename)
+    f.write("%s " %filename)
 #    f.write("%s %s %s %s " %(output[i][0], output[i][1],
 #                            output[i][2], output[i][3]))
-#    for k in output[i][4]:
-#       f.write("%s " %k)
-#    f.write("\n")
+    for k in output[i]:
+      f.write("%s " %k)
+    f.write("\n")
   f.close()
 
 ########################
