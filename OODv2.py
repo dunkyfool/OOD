@@ -392,6 +392,11 @@ def loadData(filename,grid_num,img_size):
   trainData = np.asarray(trainData)
 #  print trainData.shape
 #  raw_input()
+
+#  print trainData[0]
+  trainData -= trainData.mean()
+#  print trainData[0]
+#  raw_input()
   return filenameList,trainData, trainLabels
 
 ##########################
