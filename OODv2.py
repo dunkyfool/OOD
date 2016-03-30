@@ -470,7 +470,7 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
 
   end_time = timeit.default_timer()
   print('Total time: %.2f' % ((end_time-start_time)/60.))
-  good_record = str(e+1)+'\tTrain: '+str(good_TrainScore)+',Test: '+str(good_TestScore)
+  good_record = str(e+1)+'\tTrain: '+str(currentTrainScore)+',Test: '+str(currentTestScore)
   log = filename+'_good_record'
   record(log,3,good_record)
 
