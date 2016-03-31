@@ -613,7 +613,7 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
 
   ctr=0
   table=np.zeros((10,10,4))
-#  wrong_img=[]
+  wrong_img=[]
   for i in range(testData.shape[0]):
     output = g(testData[i:i+1])
     predict = (output[0]>0.5)
@@ -641,7 +641,7 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
 #  table[:,:,3]=table[:,:,1]*100/(table[:,:,0]+table[:,:,1])
   print("%.3f%%"%(ctr*100./testLabels.shape[0]))
 #  print tabulate(table[:,:,3],tablefmt="grid")
-'''
+
   # Each image Check
   for i in wrong_img:
     TF=0;FT=0
@@ -679,16 +679,17 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
     print 'Fact False => Predict True: '+str(FT)+' '+str(FT_buffer)
 
     img2 = cv2.resize(img,(img_size,img_size))
+    t = img_size/grid_size
     for i in TF_buffer:
       print i
-      print img2[i[1]*2:(i[1]+1)*2,i[0]*2:(i[0]+1)*2,0]
+      print img2[i[1]*t:(i[1]+1)*t,i[0]*t:(i[0]+1)*t,0]
 
     img = cv2.resize(img,(160,160))
     draw_grid(img,160,grid_size)
     cv2.imshow('image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-'''
+
 if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
 #  test_mlp(1,512,0.01,[5,3,3,3,3,3],#filter_size
