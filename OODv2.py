@@ -246,32 +246,32 @@ class CNN_MLP(object):
     if poolFlag[3]:
       tmp_size /= 2
 
-#    self.L5 = CNN_Layer(self.L4.output,
-#                  filter_shape=(kernel[5],kernel[4],filter_size[4],filter_size[4]),
-#                  image_shape=(batch_size,kernel[4],tmp_size,tmp_size),
-#                  poolsize=(2,2),
-#                  poolFlag=poolFlag[4],
-#                  border_mode=border_mode[4])
-#    if border_mode[4]:
-#      tmp_size = tmp_size + filter_size[4] - 1
-#    else:
-#      tmp_size = tmp_size - filter_size[4] + 1
-#    if poolFlag[4]:
-#      tmp_size /= 2
-#
-#    self.L6 = CNN_Layer(self.L5.output,
-#                  filter_shape=(kernel[6],kernel[5],filter_size[5],filter_size[5]),
-#                  image_shape=(batch_size,kernel[5],tmp_size,tmp_size),
-#                  poolsize=(2,2),
-#                  poolFlag=poolFlag[5],
-#                  border_mode=border_mode[5])
-#    if border_mode[5]:
-#      tmp_size = tmp_size + filter_size[5] - 1
-#    else:
-#      tmp_size = tmp_size - filter_size[5] + 1
-#    if poolFlag[5]:
-#      tmp_size /= 2
-#
+    self.L5 = CNN_Layer(self.L4.output,
+                  filter_shape=(kernel[5],kernel[4],filter_size[4],filter_size[4]),
+                  image_shape=(batch_size,kernel[4],tmp_size,tmp_size),
+                  poolsize=(2,2),
+                  poolFlag=poolFlag[4],
+                  border_mode=border_mode[4])
+    if border_mode[4]:
+      tmp_size = tmp_size + filter_size[4] - 1
+    else:
+      tmp_size = tmp_size - filter_size[4] + 1
+    if poolFlag[4]:
+      tmp_size /= 2
+
+    self.L6 = CNN_Layer(self.L5.output,
+                  filter_shape=(kernel[6],kernel[5],filter_size[5],filter_size[5]),
+                  image_shape=(batch_size,kernel[5],tmp_size,tmp_size),
+                  poolsize=(2,2),
+                  poolFlag=poolFlag[5],
+                  border_mode=border_mode[5])
+    if border_mode[5]:
+      tmp_size = tmp_size + filter_size[5] - 1
+    else:
+      tmp_size = tmp_size - filter_size[5] + 1
+    if poolFlag[5]:
+      tmp_size /= 2
+
 #    self.L7 = CNN_Layer(self.L6.output,
 #                  filter_shape=(kernel[7],kernel[6],filter_size[6],filter_size[6]),
 #                  image_shape=(batch_size,kernel[6],tmp_size,tmp_size),
@@ -311,11 +311,11 @@ class CNN_MLP(object):
 #    if poolFlag[3]:
 #      tmp_size /= 2
 
-    self.output_size = kernel[4]*tmp_size**2
+    self.output_size = kernel[6]*tmp_size**2
 #    print self.output_size,kernel[6],tmp_size
 #    raw_input('STOP')
-    self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params# + self.L5.params + self.L6.params #+ self.L7.params + self.L8.params
-    self.output = self.L4.output.reshape((batch_size,self.output_size))
+    self.params = self.L1.params + self.L2.params + self.L3.params + self.L4.params + self.L5.params + self.L6.params #+ self.L7.params + self.L8.params
+    self.output = self.L6.output.reshape((batch_size,self.output_size))
 
 def printOutput(last_params,trainData,testData,layer_num,filter_size,img_size,batch_size,kernel,poolFlag,border_mode,label):
   X = T.matrix('X')
@@ -418,7 +418,7 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
     if (e+1)%10==0:
       trainScoreCtr = 0
       testScoreCtr = 0
-      print "Training Set Wrong Image:"
+#      print "Training Set Wrong Image:"
       for x in range(trainLabels.shape[0]):
         output = v(trainData[x:x+1])
         predict = (output[0]>0.5)
@@ -430,17 +430,17 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
         #print predict.sum(),answer.sum()
         if (predict==answer).all():
           trainScoreCtr += 1
-        else:
-          print filenameList[x]
-      print "Testing Set Wrong Image:"
+#        else:
+#          print filenameList[x]
+#      print "Testing Set Wrong Image:"
       for x in range(testLabels.shape[0]):
         output = v(testData[x:x+1])
         predict = (output[0]>0.5)
         answer = (testLabels[x:x+1]==1)
         if (predict==answer).all():
           testScoreCtr += 1
-        else:
-          print test_filenameList[x]
+#        else:
+#          print test_filenameList[x]
       currentTrainScore = trainScoreCtr*100./trainLabels.shape[0]
       currentTestScore = testScoreCtr*100./testLabels.shape[0]
       print("Train Accurarcy: %.3f%%; Test Accurarcy: %.3f%%" %(currentTrainScore,currentTestScore))
@@ -465,7 +465,11 @@ def trainNetwork(g,v,trainData,trainLabels,batch_size,epoch_num,img_size,grid_si
                                    cnn.L3.w.get_value(),
                                    cnn.L3.b.get_value(),#])
                                    cnn.L4.w.get_value(),
-                                   cnn.L4.b.get_value()])
+                                   cnn.L4.b.get_value(),#])
+                                   cnn.L5.w.get_value(),
+                                   cnn.L5.b.get_value(),#])
+                                   cnn.L6.w.get_value(),
+                                   cnn.L6.b.get_value()])
 
 
   end_time = timeit.default_timer()
@@ -578,14 +582,16 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
   dnn_input = cnn.output.reshape((batch_size,cnn_output_size))
   dnn = MLP(dnn_input,y_hat,cnn_output_size,neuron,output_total,batch_size)
 
-  params = cnn.params + dnn.params
-  cost = ED(dnn.output,y_hat)
+  #params = cnn.params + dnn.params
+  #cost = ED(dnn.output,y_hat)
   #cost = OBJ(dnn.output,y_hat)
-  gparams = [ T.grad(cost,para) for para in params]
+  #gparams = [ T.grad(cost,para) for para in params]
   g=theano.function(inputs=[x],outputs=[dnn.output])
+  c=theano.function(inputs=[x],outputs=[cnn.output])
 
   print 'Load w and b...'
-  path='para/oracleTrain_org/'+str(num)+'/oracleTrain_org_para'
+#  path='para/oracleTrain_org/'+str(num)+'/oracleTrain_org_para'
+  path='ir_train_para'
   save_file = open(path)
   dnn.L1.w.set_value(cPickle.load(save_file))
   dnn.L1.b.set_value(cPickle.load(save_file))
@@ -599,18 +605,22 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
   cnn.L3.b.set_value(cPickle.load(save_file))
   cnn.L4.w.set_value(cPickle.load(save_file))
   cnn.L4.b.set_value(cPickle.load(save_file))
+  cnn.L5.w.set_value(cPickle.load(save_file))
+  cnn.L5.b.set_value(cPickle.load(save_file))
+  cnn.L6.w.set_value(cPickle.load(save_file))
+  cnn.L6.b.set_value(cPickle.load(save_file))
   save_file.close()
 
   ctr=0
   table=np.zeros((10,10,4))
-  wrong_img=[]
+#  wrong_img=[]
   for i in range(testData.shape[0]):
     output = g(testData[i:i+1])
     predict = (output[0]>0.5)
     answer = (testLabels[i:i+1]==1)
-    _x,_y = test_filenameList[i][16:-4].split('_')
-    _x = int(_x)/(160/grid_size) #img_size is not the real size
-    _y = int(_y)/(160/grid_size)
+#    _x,_y = test_filenameList[i][16:-4].split('_')
+#    _x = int(_x)/(160/grid_size) #img_size is not the real size
+#    _y = int(_y)/(160/grid_size)
 #    print test_filenameList[i]
 #    print _x,_y
 #    raw_input()
@@ -621,17 +631,17 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
     #print predict.sum(),answer.sum()
     if (predict==answer).all():
       #print str(test_filenameList[i])+' Correct'
-      table[_y,_x,0]+=1
+#      table[_y,_x,0]+=1
       ctr+=1
     else:
       #print str(test_filenameList[i])+' Wrong'
-      table[_y,_x,1]+=1
+#      table[_y,_x,1]+=1
       wrong_img+=[i]
-  table[:,:,2]=table[:,:,0]*100/(table[:,:,0]+table[:,:,1])
-  table[:,:,3]=table[:,:,1]*100/(table[:,:,0]+table[:,:,1])
+#  table[:,:,2]=table[:,:,0]*100/(table[:,:,0]+table[:,:,1])
+#  table[:,:,3]=table[:,:,1]*100/(table[:,:,0]+table[:,:,1])
   print("%.3f%%"%(ctr*100./testLabels.shape[0]))
-  print tabulate(table[:,:,3],tablefmt="grid")
-
+#  print tabulate(table[:,:,3],tablefmt="grid")
+'''
   # Each image Check
   for i in wrong_img:
     TF=0;FT=0
@@ -678,17 +688,17 @@ def trail_test(bs,nu,lr,fs,kernel,pool,bm,ep,l1,l2,wd,img_s,grid_s,testfile,num)
     cv2.imshow('image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
+'''
 if __name__ == '__main__':
 # batch, neuron, lr, filter,kernel,pool,border_mode l1,l2,wd, img, grid,
-#  test_mlp(1,512,0.01,[3,3,3,3],#filter_size
-#           [3,3,3,3,3],#kernel
-#          [False,True,False,False,False],#pool
-#          [True,False,True,False],#border_mode
-#          2000,0,0,0,20,10,'oracleTrain_org','oracleTest')
-  trail_test(1,512,0.01,[3,3,3,3],#filter_size
-           [3,3,3,3,3],#kernel_size
-          [False,True,False,False,False],#pool True: pooling
-          [True,False,True,False],#border_mode True: Padding
-          2000,0,0,0,20,10,'oracleTest',9741)
+#  test_mlp(1,512,0.01,[5,3,3,3,3,3],#filter_size
+#           [3,3,3,3,3,3,3],#kernel
+#          [True,True,False,True,False,False,False],#pool
+#          [True,False,True,False,True,False],#border_mode
+#          2000,0,0,0,80,10,'ir_train','ir_test')
+  trail_test(1,512,0.01,[5,3,3,3,3,3],#filter_size
+           [3,3,3,3,3,3,3],#kernel_size
+          [True,True,False,True,False,False,False],#pool True: pooling
+          [True,False,True,False,True,False],#border_mode True: Paddin
+          2000,0,0,0,80,10,'ir_test',9741)
   pass
